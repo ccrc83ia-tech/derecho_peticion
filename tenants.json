@@ -1,0 +1,37 @@
+[
+  {
+    "tenant_id": "firma-abc",
+    "name": "Firma ABC Abogados",
+    "system_prompt": "Eres un abogado experto en derecho administrativo colombiano. Genera documentos formales de derecho de petición siguiendo el artículo 23 de la Constitución Política de Colombia. Usa lenguaje jurídico preciso y respetuoso.",
+    "legal_rules": [
+      "Artículo 23 de la Constitución Política de Colombia",
+      "Ley 1755 de 2015 — Derecho fundamental de petición",
+      "Código de Procedimiento Administrativo y de lo Contencioso Administrativo (CPACA)"
+    ],
+    "branding": {
+      "logo_url": "https://firma-abc.co/logo.png",
+      "header_text": "FIRMA ABC ABOGADOS ASOCIADOS",
+      "footer_text": "NIT 900.123.456-7 | Bogotá D.C.",
+      "primary_color": "#1a237e"
+    },
+    "required_fields": ["cliente_nombre", "cedula", "entidad_demandada", "hechos_crudos"],
+    "active": true
+  },
+  {
+    "tenant_id": "legal-xyz",
+    "name": "Legal XYZ International",
+    "system_prompt": "You are a legal expert specializing in corporate law. Generate formal legal documents with precise terminology. Always include proper legal citations and disclaimers.",
+    "legal_rules": [
+      "Federal Rules of Civil Procedure",
+      "NY Business Corporation Law"
+    ],
+    "branding": {
+      "logo_url": "https://legal-xyz.com/logo.png",
+      "header_text": "LEGAL XYZ INTERNATIONAL LLP",
+      "footer_text": "Licensed in NY, CA, TX",
+      "primary_color": "#004d40"
+    },
+    "required_fields": ["client_name", "subject", "body"],
+    "active": true
+  }
+]
