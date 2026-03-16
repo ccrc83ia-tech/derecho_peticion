@@ -74,7 +74,8 @@ class GenerateDocumentUseCase(GenerateDocumentPort):
     def _compose_prompt(
         tenant: TenantConfig, request: DocumentGenerationRequest
     ) -> LegalContext:
-        rules_block = "\n".join(f"- {r}" for r in tenant.legal_rules)
+        rules = request.selected_rules if request.selected_rules is not None else tenant.legal_rules
+        rules_block = "\n".join(f"- {r}" for r in rules)
         system_prompt = (
             f"{tenant.system_prompt}\n\n"
             f"Reglas jurídicas aplicables:\n{rules_block}"

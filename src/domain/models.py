@@ -29,6 +29,7 @@ class TenantConfig(BaseModel):
 class DocumentGenerationRequest(BaseModel):
     template_id: str
     metadata: dict[str, str]
+    selected_rules: list[str] | None = None
 
 
 class DocumentStatus(str, Enum):
