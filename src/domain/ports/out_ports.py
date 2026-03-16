@@ -26,3 +26,22 @@ class FileExporterPort(ABC):
     ) -> str:
         """Returns the file path of the generated document."""
         ...
+
+
+class KnowledgeBasePort(ABC):
+    """Contract for RAG knowledge base — stores and retrieves document chunks."""
+
+    @abstractmethod
+    def ingest(self, template_id: str, doc_name: str, text: str) -> int:
+        """Chunk and store text. Returns number of chunks created."""
+        ...
+
+    @abstractmethod
+    def search(self, template_id: str, query: str, n_results: int = 5) -> list[str]:
+        """Return the most relevant text chunks for a query."""
+        ...
+
+    @abstractmethod
+    def delete_collection(self, template_id: str) -> None:
+        """Remove all chunks for a template."""
+        ...

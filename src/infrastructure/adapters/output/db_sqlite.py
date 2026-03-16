@@ -44,6 +44,16 @@ CREATE TABLE IF NOT EXISTS templates (
     system_prompt TEXT NOT NULL DEFAULT '',
     legal_rules   TEXT NOT NULL DEFAULT '[]'
 );
+
+CREATE TABLE IF NOT EXISTS template_documents (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id   TEXT NOT NULL,
+    doc_name      TEXT NOT NULL,
+    file_type     TEXT NOT NULL DEFAULT '',
+    chunks_count  INTEGER NOT NULL DEFAULT 0,
+    uploaded_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(template_id, doc_name)
+);
 """
 
 
@@ -170,6 +180,35 @@ class SQLiteTenantRepository(TenantRepositoryPort):
     def delete_template(self, template_id: str) -> None:
         with self._conn() as conn:
             conn.execute("DELETE FROM templates WHERE template_id = ?", (template_id,))
+            conn.execute("DELETE FROM template_documents WHERE template_id = ?", (template_id,))
+
+    # --- Template documents CRUD ---
+
+    def get_template_documents(self, template_id: str) -> list[dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT doc_name, file_type, chunks_count, uploaded_at "
+                "FROM template_documents WHERE template_id = ? ORDER BY uploaded_at DESC",
+                (template_id,),
+            ).fetchall()
+        return [{"doc_name": r[0], "file_type": r[1], "chunks_count": r[2], "uploaded_at": r[3]} for r in rows]
+
+    def upsert_template_document(self, template_id: str, doc_name: str, file_type: str, chunks_count: int) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "INSERT INTO template_documents (template_id, doc_name, file_type, chunks_count) "
+                "VALUES (?, ?, ?, ?) "
+                "ON CONFLICT(template_id, doc_name) DO UPDATE SET "
+                "file_type=excluded.file_type, chunks_count=excluded.chunks_count, uploaded_at=datetime('now')",
+                (template_id, doc_name, file_type, chunks_count),
+            )
+
+    def delete_template_document(self, template_id: str, doc_name: str) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                "DELETE FROM template_documents WHERE template_id = ? AND doc_name = ?",
+                (template_id, doc_name),
+            )
 
 
 # ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ from src.domain.ports.in_ports import GenerateDocumentPort
 from src.infrastructure.adapters.output.ai_gemini import GeminiAdapter
 from src.infrastructure.adapters.output.db_sqlite import SQLiteTenantRepository, migrate_from_json
 from src.infrastructure.adapters.output.doc_generator import DocxEngine
+from src.infrastructure.adapters.output.knowledge_base import ChromaKnowledgeBase
 from src.infrastructure.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -34,6 +35,17 @@ class Container:
                     os.getenv("GEMINI_MODEL"), "SET" if os.getenv("GEMINI_API_KEY") else "MISSING")
         self._file_exporter = DocxEngine()
 
+        # Knowledge base (RAG)
+        gemini_key = os.getenv("GEMINI_API_KEY", "")
+        chroma_dir = str(_PROJECT_ROOT / os.getenv("CHROMA_DIR", "chroma_db"))
+        self._knowledge_base = ChromaKnowledgeBase(
+            persist_dir=chroma_dir,
+            api_key=gemini_key,
+            chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "800")),
+            chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "200")),
+        ) if gemini_key else None
+        logger.info("Knowledge base: %s", "ENABLED" if self._knowledge_base else "DISABLED (no API key)")
+
         # Auto-migrate JSON → SQLite on first run
         migrate_from_json(
             db_path=db_path,
@@ -46,6 +58,7 @@ class Container:
             tenant_repository=self._tenant_repo,
             ai_service=self._ai_service,
             file_exporter=self._file_exporter,
+            knowledge_base=self._knowledge_base,
         )
 
     @property
@@ -55,3 +68,7 @@ class Container:
     @property
     def tenant_repo(self) -> SQLiteTenantRepository:
         return self._tenant_repo
+
+    @property
+    def knowledge_base(self) -> ChromaKnowledgeBase | None:
+        return self._knowledge_base

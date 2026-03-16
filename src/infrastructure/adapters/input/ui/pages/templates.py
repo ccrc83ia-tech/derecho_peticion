@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ..constants import MSG_CONFIRM_DELETE, MSG_DELETED, MSG_SAVED
-from ..state import delete_template, load_templates, upsert_template
+from ..constants import MSG_CONFIRM_DELETE, MSG_DELETED, MSG_DOC_DELETED, MSG_DOC_EMPTY, MSG_DOC_ERROR, MSG_DOC_UPLOADED, MSG_SAVED, RAG_SUPPORTED_TYPES
+from ..state import delete_document, delete_template, get_template_documents, ingest_document, load_templates, upsert_template
 
 
 def _empty_template() -> dict:
@@ -178,6 +178,50 @@ def render() -> None:
         current_fields.append({"key": "", "label": "", "required": False})
         st.session_state["tpl_fields"] = current_fields
         st.rerun()
+
+    # ── Documentos de referencia (RAG) ─────────────────────────────────────
+    if is_edit and tpl["template_id"].strip():
+        st.markdown("<div class='section-title'>Documentos de Referencia (RAG)</div>", unsafe_allow_html=True)
+        st.caption(
+            "Suba leyes, normas o documentos legales en PDF, TXT o DOCX. "
+            "La IA usará el texto literal de estos documentos al generar."
+        )
+
+        uploaded = st.file_uploader(
+            "Subir documento",
+            type=RAG_SUPPORTED_TYPES,
+            accept_multiple_files=True,
+            key="tpl_doc_upload",
+        )
+        if uploaded:
+            # Track already-processed files to avoid re-ingesting on every render
+            processed: set = st.session_state.get("_rag_processed", set())
+            for f in uploaded:
+                fkey = f"{tpl['template_id']}::{f.name}::{f.size}"
+                if fkey in processed:
+                    continue
+                with st.spinner(f"Procesando {f.name}…"):
+                    try:
+                        chunks = ingest_document(tpl["template_id"], f.name, f.getvalue(), f.type)
+                        if chunks > 0:
+                            st.success(MSG_DOC_UPLOADED.format(name=f.name, chunks=chunks))
+                        else:
+                            st.warning(MSG_DOC_EMPTY.format(name=f.name))
+                    except Exception as e:
+                        st.error(MSG_DOC_ERROR.format(name=f.name, error=e))
+                processed.add(fkey)
+            st.session_state["_rag_processed"] = processed
+
+        docs = get_template_documents(tpl["template_id"])
+        if docs:
+            for doc in docs:
+                cols_doc = st.columns([5, 2, 1])
+                cols_doc[0].markdown(f"📄 **{doc['doc_name']}**")
+                cols_doc[1].caption(f"{doc['chunks_count']} fragmentos")
+                if cols_doc[2].button("✕", key=f"doc_del_{doc['doc_name']}"):
+                    delete_document(tpl["template_id"], doc["doc_name"])
+                    st.success(MSG_DOC_DELETED.format(name=doc["doc_name"]))
+                    st.rerun()
 
     # ── Actions ────────────────────────────────────────────────────────────
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)

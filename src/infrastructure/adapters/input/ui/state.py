@@ -12,6 +12,7 @@ from .constants import (
     API_BASE,
     API_HEALTH_PATH,
     API_TIMEOUT_HEALTH,
+    CHROMA_DIR,
     DB_PATH,
     TEMPLATES_FILENAME,
     TENANTS_FILENAME,
@@ -23,6 +24,7 @@ from .constants import (
 # ---------------------------------------------------------------------------
 
 _repo = None
+_kb = None
 
 
 def _get_repo():
@@ -95,6 +97,51 @@ def upsert_template(template: dict[str, Any]) -> None:
 
 def delete_template(template_id: str) -> None:
     _get_repo().delete_template(template_id)
+
+
+# ---------------------------------------------------------------------------
+# Knowledge Base (RAG)
+# ---------------------------------------------------------------------------
+
+def _get_kb():
+    global _kb
+    if _kb is None:
+        import os
+        from pathlib import Path
+
+        _root = str(Path(__file__).resolve().parents[5])
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            from dotenv import load_dotenv
+            load_dotenv(Path(_root) / ".env")
+            api_key = os.getenv("GEMINI_API_KEY", "")
+
+        if api_key:
+            from src.infrastructure.adapters.output.knowledge_base import ChromaKnowledgeBase
+            _kb = ChromaKnowledgeBase(persist_dir=CHROMA_DIR, api_key=api_key)
+    return _kb
+
+
+def ingest_document(template_id: str, doc_name: str, file_bytes: bytes, file_type: str) -> int:
+    from src.infrastructure.ingestion.ingest_service import ingest_file
+    kb = _get_kb()
+    if kb is None:
+        return 0
+    chunks = ingest_file(kb, template_id, doc_name, file_bytes, file_type)
+    if chunks > 0:
+        _get_repo().upsert_template_document(template_id, doc_name, file_type, chunks)
+    return chunks
+
+
+def get_template_documents(template_id: str) -> list[dict]:
+    return _get_repo().get_template_documents(template_id)
+
+
+def delete_document(template_id: str, doc_name: str) -> None:
+    kb = _get_kb()
+    if kb:
+        kb.delete_document(template_id, doc_name)
+    _get_repo().delete_template_document(template_id, doc_name)
 
 
 # ---------------------------------------------------------------------------

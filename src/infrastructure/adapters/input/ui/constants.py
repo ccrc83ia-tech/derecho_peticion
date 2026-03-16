@@ -105,6 +105,16 @@ DOCX_MIME: str = (
 )
 
 # ---------------------------------------------------------------------------
+# RAG / Knowledge Base
+# ---------------------------------------------------------------------------
+CHROMA_DIR: str = str(_PROJECT_ROOT / os.getenv("CHROMA_DIR", "chroma_db"))
+RAG_SUPPORTED_TYPES: list[str] = ["pdf", "txt", "docx"]
+MSG_DOC_UPLOADED: str = "✅ Documento '{name}' procesado — {chunks} fragmentos indexados"
+MSG_DOC_DELETED: str = "🗑️ Documento '{name}' eliminado de la base de conocimiento"
+MSG_DOC_EMPTY: str = "⚠️ No se pudo extraer texto del archivo '{name}'"
+MSG_DOC_ERROR: str = "❌ Error procesando '{name}': {error}"
+
+# ---------------------------------------------------------------------------
 # Theme
 # ---------------------------------------------------------------------------
 THEME_PRIMARY: str = os.getenv("THEME_PRIMARY", "#4F46E5")
