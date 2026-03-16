@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
+import streamlit as st
 
 from .constants import (
     API_BASE,
@@ -100,6 +101,7 @@ def delete_template(template_id: str) -> None:
 # API health
 # ---------------------------------------------------------------------------
 
+@st.cache_data(ttl=15, show_spinner=False)
 def is_api_online() -> bool:
     try:
         resp = requests.get(f"{API_BASE}{API_HEALTH_PATH}", timeout=API_TIMEOUT_HEALTH)

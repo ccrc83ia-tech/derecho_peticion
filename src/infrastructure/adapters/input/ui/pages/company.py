@@ -1,49 +1,75 @@
-"""Page: Company — create/edit tenant, branding & legal rules."""
+"""Page: Company — create/edit tenant with professional branding."""
 
 from __future__ import annotations
 
+import uuid
+
 import streamlit as st
 
-from ..constants import DEFAULT_PRIMARY_COLOR, HEX_COLOR_PATTERN, MSG_CONFIRM_DELETE, MSG_DELETED, MSG_INVALID_COLOR, MSG_SAVED
+from ..constants import (
+    DEFAULT_PRIMARY_COLOR,
+    HEX_COLOR_PATTERN,
+    MSG_CONFIRM_DELETE,
+    MSG_DELETED,
+    MSG_INVALID_COLOR,
+    MSG_SAVED,
+)
 from ..state import delete_tenant, load_tenants, upsert_tenant
 
 
 def _empty_tenant() -> dict:
     return {
-        "tenant_id": "",
+        "tenant_id": str(uuid.uuid4()),
         "name": "",
+        "active": True,
         "system_prompt": "",
         "legal_rules": [],
+        "required_fields": [],
         "branding": {
             "logo_url": "",
             "header_text": "",
             "footer_text": "",
             "primary_color": DEFAULT_PRIMARY_COLOR,
+            "nit": "",
+            "address": "",
+            "phone": "",
+            "email": "",
+            "website": "",
         },
-        "required_fields": [],
-        "active": True,
     }
 
 
 def _populate_keys(tenant: dict) -> None:
-    """Write tenant data into session_state BEFORE widgets render."""
     branding = tenant.get("branding", {})
-    st.session_state["co_id"] = tenant.get("tenant_id", "")
+    color = branding.get("primary_color", DEFAULT_PRIMARY_COLOR)
     st.session_state["co_name"] = tenant.get("name", "")
     st.session_state["co_active"] = tenant.get("active", True)
-    st.session_state["co_prompt"] = tenant.get("system_prompt", "")
+    st.session_state["co_nit"] = branding.get("nit", "")
+    st.session_state["co_address"] = branding.get("address", "")
+    st.session_state["co_phone"] = branding.get("phone", "")
+    st.session_state["co_email"] = branding.get("email", "")
+    st.session_state["co_website"] = branding.get("website", "")
+    st.session_state["co_logo"] = branding.get("logo_url", "")
     st.session_state["co_header"] = branding.get("header_text", "")
     st.session_state["co_footer"] = branding.get("footer_text", "")
-    st.session_state["co_logo"] = branding.get("logo_url", "")
-    st.session_state["co_color"] = branding.get("primary_color", DEFAULT_PRIMARY_COLOR)
-    st.session_state["co_req_fields"] = ", ".join(tenant.get("required_fields", []))
-    st.session_state["co_rules"] = [
-        {"text": r, "active": True} for r in tenant.get("legal_rules", [])
-    ]
-    # Clear dynamic rule widget keys
-    for k in list(st.session_state.keys()):
-        if k.startswith("cr_"):
-            del st.session_state[k]
+    st.session_state["co_color"] = color
+    st.session_state["co_color_hex"] = color
+
+
+# ---------------------------------------------------------------------------
+# Color sync callbacks (run BEFORE next render, so safe to mutate)
+# ---------------------------------------------------------------------------
+
+def _on_picker_change() -> None:
+    """Picker changed → update hex text."""
+    st.session_state["co_color_hex"] = st.session_state["co_color"]
+
+
+def _on_hex_change() -> None:
+    """Hex text changed → update picker if valid."""
+    val = st.session_state["co_color_hex"]
+    if HEX_COLOR_PATTERN.match(val):
+        st.session_state["co_color"] = val
 
 
 # ---------------------------------------------------------------------------
@@ -51,30 +77,40 @@ def _populate_keys(tenant: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def render() -> None:
-    st.subheader("🏢 Configuración de Empresa")
+    st.markdown(
+        "<div class='page-header'>"
+        "<h2>🏢 Configuración de Empresa</h2>"
+        "<p>Registre los datos de la empresa para generar documentos con membrete profesional.</p>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
     tenants = load_tenants()
     tenant_map = {t["tenant_id"]: t for t in tenants}
 
-    action = st.radio(
-        "Acción",
-        ["Crear nueva", "Editar existente"],
-        horizontal=True,
-        key="co_action",
-    )
+    col_action, col_sel = st.columns([1, 2])
+    with col_action:
+        action = st.radio(
+            "Acción",
+            ["➕ Crear nueva", "✏️ Editar existente"],
+            horizontal=True,
+            key="co_action",
+        )
 
-    if action == "Editar existente" and not tenants:
+    is_edit = action.startswith("✏️")
+
+    if is_edit and not tenants:
         st.info("No hay empresas. Cree una primero.")
         return
 
-    # --- Context switch detection ---
-    if action == "Editar existente":
-        sel_id = st.selectbox(
-            "Seleccionar empresa",
-            options=list(tenant_map.keys()),
-            format_func=lambda tid: f"{tid} — {tenant_map[tid].get('name', '')}",
-            key="co_sel",
-        )
+    if is_edit:
+        with col_sel:
+            sel_id = st.selectbox(
+                "Seleccionar empresa",
+                options=list(tenant_map.keys()),
+                format_func=lambda tid: f"{tenant_map[tid].get('name', '')}  ({tid[:8]}…)",
+                key="co_sel",
+            )
         tenant = tenant_map[sel_id].copy()
         context_key = f"edit_{sel_id}"
     else:
@@ -83,133 +119,124 @@ def render() -> None:
 
     if st.session_state.get("_co_context") != context_key:
         st.session_state["_co_context"] = context_key
+        st.session_state["_co_tenant_id"] = tenant["tenant_id"]
         _populate_keys(tenant)
         st.rerun()
 
-    st.divider()
+    tenant_id = st.session_state.get("_co_tenant_id", tenant["tenant_id"])
 
-    # --- Basic info (widgets read from session_state via key, no value param) ---
-    tenant["tenant_id"] = st.text_input(
-        "ID de empresa *",
-        disabled=action == "Editar existente",
-        key="co_id",
+    # ── Datos de la empresa ────────────────────────────────────────────────
+    st.markdown("<div class='section-title'>Datos de la Empresa</div>", unsafe_allow_html=True)
+
+    col_name, col_nit = st.columns(2)
+    with col_name:
+        name = st.text_input("Nombre de la empresa *", key="co_name")
+    with col_nit:
+        nit = st.text_input("NIT / Identificación fiscal", key="co_nit")
+
+    col_addr, col_phone = st.columns(2)
+    with col_addr:
+        address = st.text_input("Dirección", key="co_address")
+    with col_phone:
+        phone = st.text_input("Teléfono", key="co_phone")
+
+    col_email, col_web = st.columns(2)
+    with col_email:
+        email = st.text_input("Email", key="co_email")
+    with col_web:
+        website = st.text_input("Sitio web", key="co_website")
+
+    active = st.checkbox(
+        "Empresa activa", key="co_active",
+        help="Solo una empresa puede estar activa. Al activar esta, las demás se desactivarán.",
     )
-    tenant["name"] = st.text_input("Nombre *", key="co_name")
-    tenant["active"] = st.checkbox("Activa", key="co_active")
-    tenant["system_prompt"] = st.text_area(
-        "System Prompt (instrucciones para la IA) *",
-        height=120,
-        key="co_prompt",
-    )
 
-    st.divider()
+    # ── Membrete del documento ─────────────────────────────────────────────
+    st.markdown("<div class='section-title'>Membrete del Documento</div>", unsafe_allow_html=True)
 
-    # --- Branding ---
-    st.markdown("**🎨 Branding**")
+    col_h, col_f = st.columns(2)
+    with col_h:
+        header_text = st.text_input("Texto de encabezado", key="co_header")
+    with col_f:
+        footer_text = st.text_input("Texto de pie de página", key="co_footer")
 
-    b_col1, b_col2 = st.columns(2)
-    header_text = b_col1.text_input("Texto encabezado", key="co_header")
-    footer_text = b_col2.text_input("Texto pie de página", key="co_footer")
+    col_logo, col_color_pick, col_color_txt = st.columns([2, 1, 1])
+    with col_logo:
+        logo_url = st.text_input("URL del logo", key="co_logo")
+    with col_color_pick:
+        st.color_picker("Color primario", key="co_color", on_change=_on_picker_change)
+    with col_color_txt:
+        st.text_input("Código hex", key="co_color_hex", on_change=_on_hex_change)
 
-    b_col3, b_col4 = st.columns(2)
-    logo_url = b_col3.text_input("URL del logo", key="co_logo")
-    primary_color = b_col4.color_picker("Color primario", key="co_color")
+    primary_color = st.session_state.get("co_color", DEFAULT_PRIMARY_COLOR)
 
-    tenant["branding"] = {
-        "header_text": header_text,
-        "footer_text": footer_text,
-        "logo_url": logo_url,
-        "primary_color": primary_color,
-    }
-
-    # --- Preview branding ---
-    if header_text:
+    # Preview membrete
+    if header_text or logo_url:
+        logo_html = (
+            f"<img src='{logo_url}' style='max-height:40px; margin-bottom:6px;' /><br>"
+            if logo_url else ""
+        )
+        contact_parts = [p for p in [address, phone, email] if p]
+        contact_line = "  ·  ".join(contact_parts)
         st.markdown(
-            f"<div style='border:1px solid #ddd; border-radius:6px; padding:12px; "
-            f"text-align:center; font-weight:bold; color:{primary_color};'>"
-            f"{header_text}<br>"
-            f"<span style='font-size:10px; font-style:italic; color:#888;'>"
+            f"<div class='ui-card-muted' style='text-align:center;'>"
+            f"{logo_html}"
+            f"<span style='font-weight:700; color:{primary_color}; font-size:1rem;'>"
+            f"{header_text}</span><br>"
+            f"<span style='font-size:0.72rem; color:#94A3B8;'>{contact_line}</span><br>"
+            f"<span style='font-size:0.7rem; color:#94A3B8; font-style:italic;'>"
             f"{footer_text}</span></div>",
             unsafe_allow_html=True,
         )
 
-    st.divider()
+    # ── Actions ────────────────────────────────────────────────────────────
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
-    # --- Legal rules ---
-    st.markdown("**📜 Reglas Jurídicas**")
-    st.caption("Agregue reglas y marque las que desea que estén activas por defecto.")
-
-    if "co_rules" not in st.session_state:
-        st.session_state["co_rules"] = [
-            {"text": r, "active": True} for r in tenant.get("legal_rules", [])
-        ]
-
-    rules_state: list[dict] = st.session_state["co_rules"]
-
-    to_remove: int | None = None
-    for i, rule in enumerate(rules_state):
-        cols = st.columns([1, 8, 1])
-        rule["active"] = cols[0].checkbox(
-            "Activa", value=rule.get("active", True),
-            key=f"cr_chk_{i}", label_visibility="collapsed",
-        )
-        rule["text"] = cols[1].text_input(
-            "Regla", value=rule.get("text", ""),
-            key=f"cr_txt_{i}", label_visibility="collapsed",
-        )
-        if cols[2].button("🗑️", key=f"cr_del_{i}"):
-            to_remove = i
-
-    if to_remove is not None:
-        rules_state.pop(to_remove)
-        st.session_state["co_rules"] = rules_state
-        st.rerun()
-
-    if st.button("➕ Agregar regla", key="co_add_rule"):
-        rules_state.append({"text": "", "active": True})
-        st.session_state["co_rules"] = rules_state
-        st.rerun()
-
-    st.divider()
-
-    # --- Required fields ---
-    st.markdown("**📋 Campos requeridos al generar**")
-    st.caption("Lista de claves de campos que el usuario debe completar (separados por coma).")
-    raw_fields = st.text_input("Campos requeridos", key="co_req_fields")
-    tenant["required_fields"] = [f.strip() for f in raw_fields.split(",") if f.strip()]
-
-    st.divider()
-
-    # --- Save / Delete ---
     col_save, col_del = st.columns([3, 1])
 
     with col_save:
         if st.button("💾 Guardar empresa", type="primary", use_container_width=True, key="co_save"):
-            if not tenant["tenant_id"].strip() or not tenant["name"].strip():
-                st.error("ID y Nombre son obligatorios.")
+            if not name.strip():
+                st.error("El nombre de la empresa es obligatorio.")
                 return
-            if not HEX_COLOR_PATTERN.match(tenant["branding"].get("primary_color", DEFAULT_PRIMARY_COLOR)):
+            if not HEX_COLOR_PATTERN.match(primary_color):
                 st.error(MSG_INVALID_COLOR)
                 return
-            tenant["legal_rules"] = [
-                r["text"] for r in rules_state if r.get("text", "").strip() and r.get("active", True)
-            ]
-            upsert_tenant(tenant)
+
+            tenant_data = {
+                "tenant_id": tenant_id,
+                "name": name.strip(),
+                "active": active,
+                "system_prompt": "",
+                "legal_rules": [],
+                "required_fields": [],
+                "branding": {
+                    "logo_url": logo_url.strip(),
+                    "header_text": header_text.strip(),
+                    "footer_text": footer_text.strip(),
+                    "primary_color": primary_color,
+                    "nit": nit.strip(),
+                    "address": address.strip(),
+                    "phone": phone.strip(),
+                    "email": email.strip(),
+                    "website": website.strip(),
+                },
+            }
+            upsert_tenant(tenant_data)
             st.success(MSG_SAVED)
-            # Force reload on next render
             st.session_state["_co_context"] = None
             st.rerun()
 
     with col_del:
-        if action == "Editar existente":
+        if is_edit:
             if st.button("🗑️ Eliminar", use_container_width=True, key="co_delete"):
                 st.session_state["_co_confirm_delete"] = True
 
     if st.session_state.get("_co_confirm_delete"):
-        st.warning(MSG_CONFIRM_DELETE.format(name=tenant["name"]))
+        st.warning(MSG_CONFIRM_DELETE.format(name=name))
         c1, c2 = st.columns(2)
         if c1.button("Sí, eliminar", key="co_yes"):
-            delete_tenant(tenant["tenant_id"])
+            delete_tenant(tenant_id)
             st.session_state["_co_confirm_delete"] = False
             st.session_state["_co_context"] = None
             st.success(MSG_DELETED)

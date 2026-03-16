@@ -14,6 +14,9 @@ from typing import Any
 
 from src.domain.models import TenantConfig
 from src.domain.ports.out_ports import TenantRepositoryPort
+from src.infrastructure.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 _DEFAULT_DB = "legal_engine.db"
 
@@ -34,10 +37,12 @@ CREATE TABLE IF NOT EXISTS tenants (
 );
 
 CREATE TABLE IF NOT EXISTS templates (
-    template_id  TEXT PRIMARY KEY,
-    name         TEXT NOT NULL,
-    description  TEXT NOT NULL DEFAULT '',
-    fields       TEXT NOT NULL DEFAULT '[]'
+    template_id   TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    description   TEXT NOT NULL DEFAULT '',
+    fields        TEXT NOT NULL DEFAULT '[]',
+    system_prompt TEXT NOT NULL DEFAULT '',
+    legal_rules   TEXT NOT NULL DEFAULT '[]'
 );
 """
 
@@ -55,9 +60,15 @@ def _connect(db_path: str | Path) -> sqlite3.Connection:
 
 
 def init_db(db_path: str | Path) -> None:
-    """Create tables if they don't exist."""
+    """Create tables if they don't exist and migrate schema."""
     with _connect(db_path) as conn:
         conn.executescript(_SCHEMA_SQL)
+        # Auto-migrate: add columns if missing
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(templates)").fetchall()}
+        if "system_prompt" not in cols:
+            conn.execute("ALTER TABLE templates ADD COLUMN system_prompt TEXT NOT NULL DEFAULT ''")
+        if "legal_rules" not in cols:
+            conn.execute("ALTER TABLE templates ADD COLUMN legal_rules TEXT NOT NULL DEFAULT '[]'")
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +80,7 @@ class SQLiteTenantRepository(TenantRepositoryPort):
     def __init__(self, db_path: str | Path = _DEFAULT_DB) -> None:
         self._db_path = Path(db_path)
         init_db(self._db_path)
+        logger.info("SQLiteTenantRepository ready — %s", self._db_path)
 
     def _conn(self) -> sqlite3.Connection:
         return _connect(self._db_path)
@@ -80,7 +92,9 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                 "SELECT * FROM tenants WHERE tenant_id = ?", (tenant_id,)
             ).fetchone()
         if row is None:
+            logger.warning("get_by_id: tenant '%s' not found", tenant_id)
             return None
+        logger.debug("get_by_id: tenant '%s' found", tenant_id)
         return TenantConfig(**_row_to_tenant(row))
 
     # --- CRUD used by the UI layer ---
@@ -91,7 +105,11 @@ class SQLiteTenantRepository(TenantRepositoryPort):
         return [_row_to_tenant(r) for r in rows]
 
     def upsert_tenant(self, tenant: dict[str, Any]) -> None:
+        is_active = 1 if tenant.get("active", True) else 0
         with self._conn() as conn:
+            # Only one tenant can be active at a time
+            if is_active:
+                conn.execute("UPDATE tenants SET active = 0 WHERE active = 1")
             conn.execute(
                 """
                 INSERT INTO tenants (tenant_id, name, system_prompt, legal_rules, branding, required_fields, active)
@@ -111,7 +129,7 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                     json.dumps(tenant.get("legal_rules", []), ensure_ascii=False),
                     json.dumps(tenant.get("branding", {}), ensure_ascii=False),
                     json.dumps(tenant.get("required_fields", []), ensure_ascii=False),
-                    1 if tenant.get("active", True) else 0,
+                    is_active,
                 ),
             )
 
@@ -130,18 +148,22 @@ class SQLiteTenantRepository(TenantRepositoryPort):
         with self._conn() as conn:
             conn.execute(
                 """
-                INSERT INTO templates (template_id, name, description, fields)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO templates (template_id, name, description, fields, system_prompt, legal_rules)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(template_id) DO UPDATE SET
                     name=excluded.name,
                     description=excluded.description,
-                    fields=excluded.fields
+                    fields=excluded.fields,
+                    system_prompt=excluded.system_prompt,
+                    legal_rules=excluded.legal_rules
                 """,
                 (
                     template["template_id"],
                     template["name"],
                     template.get("description", ""),
                     json.dumps(template.get("fields", []), ensure_ascii=False),
+                    template.get("system_prompt", ""),
+                    json.dumps(template.get("legal_rules", []), ensure_ascii=False),
                 ),
             )
 
@@ -167,12 +189,20 @@ def _row_to_tenant(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def _row_to_template(row: sqlite3.Row) -> dict[str, Any]:
-    return {
+    d = {
         "template_id": row["template_id"],
         "name": row["name"],
         "description": row["description"],
         "fields": json.loads(row["fields"]),
     }
+    # New columns (may not exist in old DBs before migration)
+    try:
+        d["system_prompt"] = row["system_prompt"]
+        d["legal_rules"] = json.loads(row["legal_rules"])
+    except (IndexError, KeyError):
+        d["system_prompt"] = ""
+        d["legal_rules"] = []
+    return d
 
 
 # ---------------------------------------------------------------------------

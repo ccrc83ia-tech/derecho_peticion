@@ -12,6 +12,11 @@ class Branding(BaseModel):
     header_text: str | None = None
     footer_text: str | None = None
     primary_color: str = "#000000"
+    nit: str | None = None
+    address: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    website: str | None = None
 
 
 class TenantConfig(BaseModel):

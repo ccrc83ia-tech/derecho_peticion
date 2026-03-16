@@ -7,6 +7,9 @@ from src.domain.exceptions import (
 )
 from src.domain.models import DocumentGenerationRequest, DocumentGenerationResponse
 from src.domain.ports.in_ports import GenerateDocumentPort
+from src.infrastructure.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1/documents", tags=["Documents"])
 
@@ -30,11 +33,23 @@ class DocumentController:
         body: DocumentGenerationRequest,
         x_tenant_id: str = Header(..., alias="X-Tenant-ID"),
     ) -> DocumentGenerationResponse:
+        logger.info(
+            "Generate request — tenant=%s template=%s fields=%s",
+            x_tenant_id, body.template_id, list(body.metadata.keys()),
+        )
         try:
-            return await self._use_case.execute(body, x_tenant_id)
+            result = await self._use_case.execute(body, x_tenant_id)
+            logger.info("Document generated — tx=%s", result.transaction_id)
+            return result
         except TenantNotFoundException as e:
+            logger.error("Tenant not found: %s", e.message)
             raise HTTPException(status_code=404, detail=e.message) from e
         except InvalidSchemaException as e:
+            logger.error("Schema validation failed: %s", e.message)
             raise HTTPException(status_code=422, detail=e.message) from e
         except DomainException as e:
+            logger.error("Domain error: %s", e.message)
             raise HTTPException(status_code=500, detail=e.message) from e
+        except Exception as e:
+            logger.exception("Unexpected error during generation")
+            raise HTTPException(status_code=500, detail=str(e)) from e
