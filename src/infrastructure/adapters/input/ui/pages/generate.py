@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import requests
 import streamlit as st
+import streamlit_antd_components as sac
 
+from ..components import page_header, section_title, spacer, stat_card
 from ..constants import (
     API_BASE,
     API_GENERATE_PATH,
@@ -22,13 +24,10 @@ from ..constants import (
     MSG_SUCCESS,
     PAGE_COMPANY,
     PAGE_TEMPLATES,
-    PREVIEW_FONT_FAMILY,
-    PREVIEW_FONT_SIZE,
-    PREVIEW_MAX_HEIGHT,
     TEXT_AREA_FIELDS,
     TEXT_AREA_HEIGHT,
 )
-from ..state import is_api_online, load_templates, load_tenants
+from ..state import get_template_documents, is_api_online, load_templates, load_tenants
 
 
 # ---------------------------------------------------------------------------
@@ -71,53 +70,45 @@ def _resolve_label(field: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def render() -> None:
-    st.markdown(
-        "<div class='page-header'>"
-        "<h2>📄 Generar Documento</h2>"
-        "<p>Seleccione empresa, plantilla y complete los datos para generar "
-        "un documento jurídico con IA.</p>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    page_header("📄", "Generar Documento",
+                "Seleccione empresa, plantilla y complete los datos para generar un documento jurídico con IA.")
 
     if not is_api_online():
-        st.error(MSG_API_OFFLINE.format(api_base=API_BASE))
+        sac.alert(
+            label="API no disponible",
+            description=f"Inicia el servidor en {API_BASE} antes de generar documentos.",
+            color="error", icon=True, closable=True,
+        )
 
     tenants = load_tenants()
     active_tenants = [t for t in tenants if t.get("active", True)]
     if not active_tenants:
-        st.warning(MSG_NO_TENANTS.format(page=PAGE_COMPANY))
+        sac.alert(label="Sin empresas", description=MSG_NO_TENANTS.format(page=PAGE_COMPANY), color="warning", icon=True)
         return
 
     all_templates = load_templates()
     if not all_templates:
-        st.warning(MSG_NO_TEMPLATES.format(page=PAGE_TEMPLATES))
+        sac.alert(label="Sin plantillas", description=MSG_NO_TEMPLATES.format(page=PAGE_TEMPLATES), color="warning", icon=True)
         return
 
     tenant_names = [t["name"] for t in active_tenants]
     tenant_map = {t["name"]: t for t in active_tenants}
 
-    # ── Selectors (outside form so they update immediately) ────────────────
-    st.markdown(
-        "<div class='section-title'>Configuración</div>",
-        unsafe_allow_html=True,
-    )
+    # ── Step 1: Configuration ──────────────────────────────────────────────
+    section_title("① Configuración")
 
     col_t, col_p = st.columns(2)
     with col_t:
-        selected_name = st.selectbox(
-            "Empresa", options=tenant_names, key="gen_tenant",
-        )
+        selected_name = st.selectbox("Empresa", options=tenant_names, key="gen_tenant")
     tenant = tenant_map[selected_name]
 
-    # Compatible templates
     compatible = all_templates
     template_map = {t["template_id"]: t for t in compatible}
     with col_p:
         selected_template_id = st.selectbox(
             "Plantilla",
             options=list(template_map.keys()),
-            format_func=lambda tid: f"{tid} — {template_map[tid].get('name', '')}",
+            format_func=lambda tid: f"{template_map[tid].get('name', '')}",
             key="gen_template",
         )
     template = template_map[selected_template_id]
@@ -125,25 +116,51 @@ def render() -> None:
     if template.get("description"):
         st.caption(template["description"])
 
-    # ── Legal rules ────────────────────────────────────────────────────────
+    # ── Step 2: Reference documents (RAG) ──────────────────────────────────
+    rag_docs = get_template_documents(selected_template_id)
     available_rules = template.get("legal_rules", []) or tenant.get("legal_rules", [])
     selected_rules: list[str] = []
-    if available_rules:
-        st.markdown(
-            "<div class='section-title'>Reglas Jurídicas</div>",
-            unsafe_allow_html=True,
-        )
-        rule_cols = st.columns(min(len(available_rules), 3))
-        for i, rule in enumerate(available_rules):
-            with rule_cols[i % len(rule_cols)]:
-                if st.checkbox(rule, value=True, key=f"rule_{hash(rule)}"):
-                    selected_rules.append(rule)
+    has_sources = bool(rag_docs) or bool(available_rules)
 
-    # ── Form (ensures all widget values are submitted together) ────────────
-    st.markdown(
-        "<div class='section-title'>Datos del Documento</div>",
-        unsafe_allow_html=True,
-    )
+    if has_sources:
+        section_title("② Fuentes Jurídicas")
+
+    if rag_docs:
+        st.caption("Documentos de referencia cargados — la IA citará textualmente de estos.")
+        doc_names = [d["doc_name"] for d in rag_docs]
+        selected_doc_indices = sac.chip(
+            items=[sac.ChipItem(label=name, icon="file-earmark-text") for name in doc_names],
+            align="start",
+            multiple=True,
+            index=list(range(len(doc_names))),
+            key="rag_doc_chips",
+        )
+        if selected_doc_indices is not None:
+            for idx in selected_doc_indices:
+                if isinstance(idx, int) and idx < len(doc_names):
+                    selected_rules.append(doc_names[idx])
+                elif isinstance(idx, str):
+                    selected_rules.append(idx)
+
+    if available_rules:
+        st.caption("Reglas jurídicas configuradas en la plantilla.")
+        rule_indices = sac.chip(
+            items=[sac.ChipItem(label=rule, icon="book") for rule in available_rules],
+            align="start",
+            multiple=True,
+            index=list(range(len(available_rules))),
+            key="rule_chips",
+        )
+        if rule_indices is not None:
+            for idx in rule_indices:
+                if isinstance(idx, int) and idx < len(available_rules):
+                    selected_rules.append(available_rules[idx])
+                elif isinstance(idx, str):
+                    selected_rules.append(idx)
+
+    # ── Step 3: Form ──────────────────────────────────────────────────────
+    step_num = "③" if has_sources else "②"
+    section_title(f"{step_num} Datos del Documento")
 
     fields = template.get("fields", [])
 
@@ -174,15 +191,16 @@ def render() -> None:
     # ── Validate & generate ────────────────────────────────────────────────
     metadata = {k: v.strip() for k, v in field_widgets.items()}
 
-    # Inject template prompt so the use case can use it
     tpl_prompt = template.get("system_prompt", "")
     if tpl_prompt:
         metadata["_system_prompt"] = tpl_prompt
 
-    # Use template legal_rules as selected_rules if no tenant rules
     tpl_rules = template.get("legal_rules", [])
     if tpl_rules and not selected_rules:
         selected_rules = tpl_rules
+
+    if rag_docs:
+        metadata["_rag_sources"] = ",".join(selected_rules)
 
     missing = [
         _resolve_label(f)
@@ -190,7 +208,7 @@ def render() -> None:
         if f.get("required") and not metadata.get(f["key"], "")
     ]
     if missing:
-        st.error(MSG_MISSING_FIELDS.format(fields=", ".join(missing)))
+        sac.alert(label="Campos faltantes", description=", ".join(missing), color="error", icon=True)
         return
 
     with st.spinner(MSG_GENERATING):
@@ -199,7 +217,7 @@ def render() -> None:
                 tenant_id=tenant["tenant_id"],
                 template_id=selected_template_id,
                 metadata=metadata,
-                selected_rules=selected_rules if available_rules else None,
+                selected_rules=selected_rules if has_sources else None,
             )
             st.session_state["last_result"] = result
             st.session_state["last_tenant"] = tenant
@@ -210,7 +228,7 @@ def render() -> None:
             st.error(MSG_CONNECTION_ERROR.format(api_base=API_BASE))
             return
 
-    st.success(MSG_SUCCESS)
+    sac.alert(label="Documento generado", description="El documento está listo para revisar y descargar.", color="success", icon=True)
     _show_last_result(tenant)
 
 
@@ -225,24 +243,17 @@ def _show_last_result(tenant: dict) -> None:
     result = st.session_state["last_result"]
     branding = st.session_state.get("last_tenant", {}).get("branding", {})
 
-    st.markdown(
-        "<div class='section-title'>Resultado</div>", unsafe_allow_html=True,
-    )
+    section_title("Resultado")
 
     col_s, col_id = st.columns([2, 3])
-    col_s.markdown(
-        f"<div class='stat-card'>"
-        f"<div class='stat-card-value' style='font-size:1.2rem;'>✅</div>"
-        f"<div class='stat-card-label'>{result['status']}</div></div>",
-        unsafe_allow_html=True,
-    )
-    col_id.markdown(
-        f"<div class='stat-card'>"
-        f"<div class='stat-card-value' style='font-size:0.85rem;'>"
-        f"{result['transaction_id'][:16]}</div>"
-        f"<div class='stat-card-label'>Transaction ID</div></div>",
-        unsafe_allow_html=True,
-    )
+    with col_s:
+        stat_card("✅", result["status"], value_style="font-size:1.4rem;")
+    with col_id:
+        stat_card(
+            f"{result['transaction_id'][:16]}…",
+            "Transaction ID",
+            value_style="font-size:0.8rem; font-family:monospace;",
+        )
 
     try:
         file_bytes = _download(result["download_url"])
@@ -251,21 +262,16 @@ def _show_last_result(tenant: dict) -> None:
         st.warning(f"Descarga manual: {API_BASE}{result['download_url']}")
         return
 
-    # Extract text from DOCX for editable preview
     raw_text = _extract_text(file_bytes)
     if raw_text is None:
         st.info("No se pudo leer el documento.")
         return
 
-    # Store original text on first load
     if "last_doc_text" not in st.session_state or st.session_state.get("_last_tx") != result["transaction_id"]:
         st.session_state["last_doc_text"] = raw_text
         st.session_state["_last_tx"] = result["transaction_id"]
 
-    st.markdown(
-        "<div class='section-title'>Editar Documento</div>",
-        unsafe_allow_html=True,
-    )
+    section_title("Editar Documento")
     st.caption("Puede editar el texto antes de descargar. Use **texto** para negrilla y *texto* para cursiva.")
 
     edited_text = st.text_area(
@@ -277,7 +283,6 @@ def _show_last_result(tenant: dict) -> None:
     )
     st.session_state["last_doc_text"] = edited_text
 
-    # Rebuild DOCX from edited text
     edited_bytes = _rebuild_docx(edited_text, branding)
 
     col_dl, col_reset = st.columns([3, 1])
@@ -291,7 +296,7 @@ def _show_last_result(tenant: dict) -> None:
             key="gen_download",
         )
     with col_reset:
-        if st.button("🔄 Restaurar original", use_container_width=True, key="gen_reset"):
+        if st.button("🔄 Restaurar", use_container_width=True, key="gen_reset"):
             st.session_state["last_doc_text"] = raw_text
             st.rerun()
 
@@ -301,7 +306,6 @@ def _show_last_result(tenant: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def _extract_text(file_bytes: bytes) -> str | None:
-    """Extract plain text from DOCX, preserving bold/italic as markdown."""
     try:
         import io
         from docx import Document
@@ -331,7 +335,6 @@ def _extract_text(file_bytes: bytes) -> str | None:
 
 
 def _rebuild_docx(text: str, branding: dict) -> bytes:
-    """Rebuild a DOCX from edited text with branding."""
     import io
     import re
     from docx import Document
@@ -352,7 +355,6 @@ def _rebuild_docx(text: str, branding: dict) -> bytes:
     except (ValueError, IndexError):
         rgb = RGBColor(0, 0, 0)
 
-    # Header
     header_text = branding.get("header_text", "")
     if header_text:
         hp = doc.add_paragraph()
@@ -375,7 +377,6 @@ def _rebuild_docx(text: str, branding: dict) -> bytes:
 
         doc.add_paragraph("─" * 60)
 
-    # Body with markdown parsing
     pattern = re.compile(r"(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*)")
     for line in text.split("\n"):
         stripped = line.strip()
@@ -401,7 +402,6 @@ def _rebuild_docx(text: str, branding: dict) -> bytes:
         if last_end < len(stripped):
             para.add_run(stripped[last_end:])
 
-    # Footer
     footer_text = branding.get("footer_text", "")
     if footer_text:
         doc.add_paragraph("")
