@@ -1,0 +1,88 @@
+[
+  {
+    "template_id": "REQ-PENSIONAL-V1",
+    "name": "Derecho de Petición — Pensional",
+    "description": "Plantilla para derechos de petición relacionados con trámites pensionales ante entidades públicas colombianas.",
+    "fields": [
+      {
+        "key": "cliente_nombre",
+        "label": "Nombre del Cliente",
+        "required": true
+      },
+      {
+        "key": "cedula",
+        "label": "Cédula de Ciudadanía",
+        "required": true
+      },
+      {
+        "key": "entidad_demandada",
+        "label": "Entidad Demandada",
+        "required": true
+      },
+      {
+        "key": "hechos_crudos",
+        "label": "Hechos del Caso",
+        "required": true
+      }
+    ]
+  },
+  {
+    "template_id": "CORPORATE-LETTER-V1",
+    "name": "Corporate Legal Letter",
+    "description": "Template for formal corporate legal correspondence.",
+    "fields": [
+      {
+        "key": "client_name",
+        "label": "Client Name",
+        "required": true
+      },
+      {
+        "key": "subject",
+        "label": "Subject",
+        "required": true
+      },
+      {
+        "key": "body",
+        "label": "Body",
+        "required": true
+      }
+    ]
+  },
+  {
+    "template_id": "Derechos",
+    "name": "1.0",
+    "description": "",
+    "fields": [
+      {
+        "key": "cliente_nombre",
+        "label": "Nombre del Cliente",
+        "required": true
+      },
+      {
+        "key": "cedula",
+        "label": "Cédula de Ciudadanía",
+        "required": true
+      },
+      {
+        "key": "entidad_demandada",
+        "label": "Entidad Demandada",
+        "required": true
+      },
+      {
+        "key": "hechos_crudos",
+        "label": "Hechos del Caso",
+        "required": true
+      },
+      {
+        "key": "direccion",
+        "label": "Dirección de Residencia",
+        "required": true
+      },
+      {
+        "key": "correo",
+        "label": "Correo Electronico",
+        "required": true
+      }
+    ]
+  }
+]

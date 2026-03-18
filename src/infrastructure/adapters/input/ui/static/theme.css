@@ -1,0 +1,605 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   FuturoTech AI — Enterprise Dark Theme
+   Single source of truth for all UI styles.
+   Edit CSS variables below to re-skin the entire app.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+    --color-primary:       #6a5af9;
+    --color-primary-dark:  #5a4bd1;
+    --color-accent:        #00d2ff;
+    --color-neon:          #00e5ff;
+    --color-success:       #00b894;
+    --color-danger:        #ff4b4b;
+    --color-warning:       #f0a500;
+
+    --bg-main:             #0e1c36;
+    --bg-sidebar:          #0c1220;
+    --bg-card:             #162033;
+    --bg-card-hover:       #1e2d47;
+    --bg-input:            #1a2332;
+    --bg-surface:          #121826;
+
+    --border-subtle:       rgba(30, 41, 59, 0.8);
+    --border-input:        rgba(148, 163, 184, 0.18);
+    --border-primary:      rgba(106, 90, 249, 0.18);
+    --border-neon:         rgba(0, 229, 255, 0.25);
+
+    --text-primary:        #e2e8f0;
+    --text-secondary:      #94a3b8;
+    --text-muted:          #64748b;
+
+    --radius-sm:           6px;
+    --radius-md:           10px;
+    --radius-lg:           16px;
+    --radius-pill:         999px;
+
+    --shadow-card:         0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-card-hover:   0 12px 40px rgba(106, 90, 249, 0.15);
+    --shadow-glow-primary: 0 4px 15px rgba(106, 90, 249, 0.3);
+    --shadow-glow-neon:    0 0 0 3px rgba(0, 229, 255, 0.12), 0 0 12px rgba(0, 229, 255, 0.08);
+    --shadow-glow-success: 0 4px 15px rgba(0, 184, 148, 0.3);
+
+    --font-family:         'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --transition-fast:     0.2s ease;
+    --transition-normal:   0.3s ease;
+}
+
+/* ── Global Reset ───────────────────────────────────────────────────────── */
+html, body, [class*='css'] {
+    font-family: var(--font-family);
+}
+.block-container {
+    max-width: 1100px;
+    padding-top: 1rem;
+}
+.stApp {
+    background: var(--bg-main);
+}
+
+/* ── Hide Streamlit default header & footer ──────────────────────────────── */
+header,
+header[data-testid="stHeader"],
+.stAppHeader,
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+#MainMenu,
+footer,
+.stDeployButton,
+[data-testid="manage-app-button"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background: var(--bg-sidebar) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+}
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {
+    color: var(--text-secondary);
+}
+section[data-testid="stSidebar"] hr {
+    border-color: var(--border-subtle) !important;
+}
+
+/* ── Sidebar Brand ──────────────────────────────────────────────────────── */
+.sidebar-brand {
+    text-align: center;
+    padding: 1.8rem 1rem 1rem;
+}
+.sidebar-brand-icon {
+    font-size: 2.8rem;
+    margin-bottom: 0.2rem;
+}
+.sidebar-brand-title {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 0.3rem 0 0;
+    letter-spacing: -0.01em;
+}
+.sidebar-brand-sub {
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    margin: 0.25rem 0 0;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+/* ── Sidebar Navigation (st.radio styled as nav items) ──────────────────── */
+section[data-testid="stSidebar"] .stRadio > div {
+    gap: 2px !important;
+}
+section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.7rem 1rem !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-secondary) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all var(--transition-fast) !important;
+    border-left: 3px solid transparent !important;
+    background: transparent !important;
+    margin: 0 !important;
+}
+section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label:hover {
+    background: rgba(148, 163, 184, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label[data-checked="true"] {
+    background: rgba(106, 90, 249, 0.1) !important;
+    color: var(--color-neon) !important;
+    border-left-color: var(--color-primary) !important;
+    font-weight: 600 !important;
+}
+/* Hide the radio circle */
+section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] > label > div:first-child {
+    display: none !important;
+}
+
+/* ── Sidebar Footer ─────────────────────────────────────────────────────── */
+.sidebar-footer {
+    text-align: center;
+    padding: 1rem 0.8rem 1.2rem;
+}
+.sidebar-footer-version {
+    color: var(--text-muted);
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    margin-top: 0.8rem;
+}
+
+/* ── Pulse animation for online badge ───────────────────────────────────── */
+@keyframes pulse-green {
+    0%   { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(0, 184, 148, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+.badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+.badge-online {
+    background: rgba(0, 184, 148, 0.1);
+    color: var(--color-success);
+    border: 1px solid rgba(0, 184, 148, 0.25);
+    animation: pulse-green 2s infinite;
+}
+.badge-offline {
+    background: rgba(255, 75, 75, 0.1);
+    color: var(--color-danger);
+    border: 1px solid rgba(255, 75, 75, 0.25);
+}
+.badge-count {
+    background: rgba(106, 90, 249, 0.1);
+    color: var(--color-primary);
+    border: 1px solid var(--border-primary);
+    font-size: 0.7rem;
+}
+
+/* ── Page Header ─────────────────────────────────────────────────────────── */
+.page-header {
+    margin-bottom: 1.5rem;
+    padding: 1rem 0 0.6rem;
+}
+.page-header h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.45rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+.page-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+}
+
+/* ── Section Title ───────────────────────────────────────────────────────── */
+.section-title {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-neon);
+    margin: 1.5rem 0 0.6rem 0;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--color-primary);
+    display: inline-block;
+}
+
+/* ── Cards — glassmorphism ───────────────────────────────────────────────── */
+.ui-card {
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-card);
+    transition: all var(--transition-normal);
+}
+.ui-card:hover {
+    border-color: var(--color-primary);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+/* ── Stat Card ───────────────────────────────────────────────────────────── */
+.stat-card {
+    text-align: center;
+    padding: 1.2rem;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+}
+.stat-card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.stat-card-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ── Column Header (for table-like layouts) ──────────────────────────────── */
+.col-header {
+    font-size: 0.7rem;
+    color: var(--color-neon);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-input) !important;
+    color: var(--text-primary) !important;
+    border-radius: var(--radius-sm) !important;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+}
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: var(--color-neon) !important;
+    box-shadow: var(--shadow-glow-neon) !important;
+}
+.stSelectbox > div > div {
+    background: var(--bg-input) !important;
+    border-color: var(--border-input) !important;
+    color: var(--text-primary) !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+/* ── Labels ──────────────────────────────────────────────────────────────── */
+.stTextInput > label,
+.stTextArea > label,
+.stSelectbox > label,
+.stCheckbox > label,
+.stRadio > label,
+.stFileUploader > label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+}
+
+/* ── Primary Button — gradient pill ──────────────────────────────────────── */
+.stButton > button[kind='primary'] {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent)) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border-radius: var(--radius-pill) !important;
+    padding: 0.6rem 2rem !important;
+    font-size: 0.86rem !important;
+    letter-spacing: 0.02em !important;
+    transition: all var(--transition-normal) !important;
+    box-shadow: var(--shadow-glow-primary) !important;
+}
+.stButton > button[kind='primary']:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(106, 90, 249, 0.5) !important;
+}
+
+/* ── Secondary Button — solid dark ────────────────────────────────────────── */
+.stButton > button:not([kind='primary']) {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-input) !important;
+    color: var(--text-secondary) !important;
+    border-radius: var(--radius-pill) !important;
+    padding: 0.5rem 1.5rem !important;
+    font-weight: 500 !important;
+    transition: all var(--transition-normal) !important;
+}
+.stButton > button:not([kind='primary']):hover {
+    background: var(--bg-card-hover) !important;
+    border-color: var(--color-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── Download Button — success gradient ──────────────────────────────────── */
+.stDownloadButton > button {
+    background: linear-gradient(135deg, var(--color-success), var(--color-accent)) !important;
+    border: none !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border-radius: var(--radius-pill) !important;
+    box-shadow: var(--shadow-glow-success) !important;
+}
+.stDownloadButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(0, 184, 148, 0.5) !important;
+}
+
+/* ── Tabs — underline style ──────────────────────────────────────────────── */
+.stTabs [data-baseweb='tab-list'] {
+    gap: 0;
+    background: transparent !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    padding: 0 !important;
+}
+.stTabs [data-baseweb='tab'] {
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: 10px 24px !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+    font-size: 0.84rem !important;
+    border-bottom: 2px solid transparent !important;
+    transition: all var(--transition-fast) !important;
+}
+.stTabs [aria-selected='true'] {
+    color: var(--color-neon) !important;
+    border-bottom: 2px solid var(--color-neon) !important;
+    font-weight: 600 !important;
+}
+.stTabs [data-baseweb='tab']:hover {
+    color: var(--text-primary) !important;
+}
+.stTabs [data-baseweb='tab-highlight'],
+.stTabs [data-baseweb='tab-border'] {
+    display: none !important;
+}
+
+/* ── Checkbox ────────────────────────────────────────────────────────────── */
+.stCheckbox > label > span {
+    color: var(--text-primary) !important;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+hr {
+    border-color: var(--border-subtle) !important;
+}
+
+/* ── File Uploader ───────────────────────────────────────────────────────── */
+.stFileUploader {
+    border: 2px dashed var(--border-neon) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 1rem !important;
+    background: rgba(26, 35, 50, 0.4) !important;
+}
+
+/* ── Form Container ──────────────────────────────────────────────────────── */
+[data-testid='stForm'] {
+    border: 1px solid var(--border-primary) !important;
+    border-radius: var(--radius-md) !important;
+    background: var(--bg-card) !important;
+    padding: 1.5rem !important;
+}
+
+/* ── Captions ────────────────────────────────────────────────────────────── */
+.stCaption,
+[data-testid='stCaptionContainer'] {
+    color: var(--text-secondary) !important;
+}
+
+/* ── Alerts ──────────────────────────────────────────────────────────────── */
+.stAlert {
+    border-radius: var(--radius-md) !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: var(--color-primary); border-radius: 3px; }
+
+/* ── SAC iframes — transparent bg ────────────────────────────────────────── */
+iframe[title*='streamlit_antd_components'] {
+    background: transparent !important;
+    color-scheme: dark !important;
+}
+section[data-testid="stSidebar"] iframe[title*="streamlit_antd_components"] {
+    background: var(--bg-sidebar) !important;
+}
+
+/* ── Spinner ─────────────────────────────────────────────────────────────── */
+.stSpinner > div {
+    border-top-color: var(--color-neon) !important;
+}
+
+/* ── Segmented Control (button toggle group) ─────────────────────────────── */
+.segmented-wrap {
+    display: inline-flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.segmented-wrap .stButton {
+    width: auto !important;
+}
+.segmented-wrap .stButton > button {
+    min-height: 2.4rem !important;
+    padding: 0.45rem 1.3rem !important;
+    font-size: 0.82rem !important;
+}
+.segmented-wrap .stButton > button:not([kind='primary']) {
+    background: var(--bg-input) !important;
+    border: 1px solid var(--border-input) !important;
+    color: var(--text-secondary) !important;
+}
+.segmented-wrap .stButton > button:not([kind='primary']):hover {
+    border-color: var(--color-primary) !important;
+    color: var(--text-primary) !important;
+    background: var(--bg-card) !important;
+}
+.segmented-wrap .stButton > button[kind='primary'] {
+    padding: 0.45rem 1.3rem !important;
+    font-size: 0.82rem !important;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+}
+.empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.6rem;
+    opacity: 0.6;
+}
+.empty-state-text {
+    font-size: 0.88rem;
+    margin-bottom: 0.3rem;
+}
+.empty-state-hint {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Responsive Breakpoints
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤1024px) ────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .block-container {
+        max-width: 100%;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .page-header h2 {
+        font-size: 1.25rem;
+    }
+    .ui-card {
+        padding: 1.2rem;
+    }
+    .stat-card {
+        padding: 1rem;
+    }
+    .stat-card-value {
+        font-size: 1.4rem;
+    }
+}
+
+/* ── Mobile (≤768px) ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.5rem;
+    }
+    .page-header {
+        margin-bottom: 1rem;
+        padding: 0.5rem 0 0.4rem;
+    }
+    .page-header h2 {
+        font-size: 1.1rem;
+    }
+    .page-header p {
+        font-size: 0.78rem;
+    }
+    .section-title {
+        font-size: 0.6rem;
+        margin: 1rem 0 0.4rem 0;
+    }
+    .ui-card {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+    }
+    .ui-card:hover {
+        transform: none;
+    }
+    .stat-card {
+        padding: 0.8rem;
+        border-radius: var(--radius-md);
+    }
+    .stat-card-value {
+        font-size: 1.2rem;
+    }
+    .stat-card-label {
+        font-size: 0.62rem;
+    }
+    .stButton > button[kind='primary'],
+    .stButton > button:not([kind='primary']) {
+        padding: 0.45rem 1rem !important;
+        font-size: 0.8rem !important;
+    }
+    .stButton > button[kind='primary']:hover,
+    .stButton > button:not([kind='primary']):hover {
+        transform: none !important;
+    }
+    .stDownloadButton > button:hover {
+        transform: none !important;
+    }
+    .stTabs [data-baseweb='tab'] {
+        padding: 8px 14px !important;
+        font-size: 0.78rem !important;
+    }
+    .sidebar-brand {
+        padding: 1.2rem 0.5rem 0.6rem;
+    }
+    .sidebar-brand-icon {
+        font-size: 2rem;
+    }
+    .sidebar-brand-title {
+        font-size: 1rem;
+    }
+    .empty-state {
+        padding: 2rem 0.5rem;
+    }
+    .segmented-wrap .stButton > button {
+        padding: 0.4rem 0.8rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ── Small mobile (≤480px) ───────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .page-header h2 {
+        font-size: 1rem;
+    }
+    .stTabs [data-baseweb='tab'] {
+        padding: 6px 10px !important;
+        font-size: 0.72rem !important;
+    }
+    .badge {
+        padding: 3px 10px;
+        font-size: 0.6rem;
+    }
+}
