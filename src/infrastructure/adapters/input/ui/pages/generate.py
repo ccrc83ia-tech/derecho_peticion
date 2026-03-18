@@ -27,7 +27,7 @@ from ..constants import (
     TEXT_AREA_FIELDS,
     TEXT_AREA_HEIGHT,
 )
-from ..state import get_template_documents, is_api_online, load_templates, load_tenants
+from ..state import get_template_documents, is_api_online, load_entities, load_templates, load_tenants
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +116,29 @@ def render() -> None:
     if template.get("description"):
         st.caption(template["description"])
 
+    # ── Entity selection ───────────────────────────────────────────────────
+    all_entities = load_entities()
+    selected_entity: dict | None = None
+    if all_entities:
+        entity_map = {e["entity_id"]: e for e in all_entities}
+        entity_options = [""] + list(entity_map.keys())
+
+        def _fmt_entity(eid: str) -> str:
+            if not eid:
+                return "— Sin entidad destinataria —"
+            e = entity_map[eid]
+            t = f" ({e['entity_type']})" if e.get("entity_type") else ""
+            return f"{e['name']}{t}"
+
+        selected_eid = st.selectbox(
+            "Entidad destinataria",
+            options=entity_options,
+            format_func=_fmt_entity,
+            key="gen_entity",
+        )
+        if selected_eid:
+            selected_entity = entity_map[selected_eid]
+
     # ── Step 2: Reference documents (RAG) ──────────────────────────────────
     rag_docs = get_template_documents(selected_template_id)
     available_rules = template.get("legal_rules", []) or tenant.get("legal_rules", [])
@@ -164,9 +187,15 @@ def render() -> None:
 
     fields = template.get("fields", [])
 
+    # Fields that the entity selection already covers
+    _ENTITY_FIELD_KEYS = {"entidad_demandada", "entidad_nombre", "entidad_destino", "entidad"}
+
     with st.form("generate_form", clear_on_submit=False):
         field_widgets: dict[str, str] = {}
         for field in fields:
+            # Skip entity fields when an entity is selected from the dropdown
+            if selected_entity and field["key"] in _ENTITY_FIELD_KEYS:
+                continue
             label = _resolve_label(field)
             display = f"{label} *" if field.get("required") else label
             if field["key"] in TEXT_AREA_FIELDS:
@@ -191,6 +220,17 @@ def render() -> None:
     # ── Validate & generate ────────────────────────────────────────────────
     metadata = {k: v.strip() for k, v in field_widgets.items()}
 
+    # Inject entity data into metadata
+    if selected_entity:
+        metadata["entidad_nombre"] = selected_entity.get("name", "")
+        metadata["entidad_nit"] = selected_entity.get("nit", "")
+        metadata["entidad_direccion"] = selected_entity.get("address", "")
+        metadata["entidad_ciudad"] = selected_entity.get("city", "")
+        metadata["entidad_telefono"] = selected_entity.get("phone", "")
+        metadata["entidad_email"] = selected_entity.get("email", "")
+        metadata["entidad_representante_legal"] = selected_entity.get("legal_rep", "")
+        metadata["entidad_tipo"] = selected_entity.get("entity_type", "")
+
     tpl_prompt = template.get("system_prompt", "")
     if tpl_prompt:
         metadata["_system_prompt"] = tpl_prompt
@@ -205,7 +245,9 @@ def render() -> None:
     missing = [
         _resolve_label(f)
         for f in fields
-        if f.get("required") and not metadata.get(f["key"], "")
+        if f.get("required")
+        and not metadata.get(f["key"], "")
+        and not (selected_entity and f["key"] in _ENTITY_FIELD_KEYS)
     ]
     if missing:
         sac.alert(label="Campos faltantes", description=", ".join(missing), color="error", icon=True)

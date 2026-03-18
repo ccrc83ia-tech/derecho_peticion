@@ -54,6 +54,19 @@ CREATE TABLE IF NOT EXISTS template_documents (
     uploaded_at   TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(template_id, doc_name)
 );
+
+CREATE TABLE IF NOT EXISTS entities (
+    entity_id     TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    nit           TEXT NOT NULL DEFAULT '',
+    address       TEXT NOT NULL DEFAULT '',
+    city          TEXT NOT NULL DEFAULT '',
+    phone         TEXT NOT NULL DEFAULT '',
+    email         TEXT NOT NULL DEFAULT '',
+    legal_rep     TEXT NOT NULL DEFAULT '',
+    entity_type   TEXT NOT NULL DEFAULT '',
+    notes         TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -210,6 +223,44 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                 (template_id, doc_name),
             )
 
+    # --- Entities CRUD ---
+
+    def get_all_entities(self) -> list[dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute("SELECT * FROM entities ORDER BY name").fetchall()
+        return [_row_to_entity(r) for r in rows]
+
+    def get_entity(self, entity_id: str) -> dict[str, Any] | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM entities WHERE entity_id = ?", (entity_id,)
+            ).fetchone()
+        return _row_to_entity(row) if row else None
+
+    def upsert_entity(self, entity: dict[str, Any]) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO entities (entity_id, name, nit, address, city, phone, email, legal_rep, entity_type, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(entity_id) DO UPDATE SET
+                    name=excluded.name, nit=excluded.nit, address=excluded.address,
+                    city=excluded.city, phone=excluded.phone, email=excluded.email,
+                    legal_rep=excluded.legal_rep, entity_type=excluded.entity_type, notes=excluded.notes
+                """,
+                (
+                    entity["entity_id"], entity["name"],
+                    entity.get("nit", ""), entity.get("address", ""),
+                    entity.get("city", ""), entity.get("phone", ""),
+                    entity.get("email", ""), entity.get("legal_rep", ""),
+                    entity.get("entity_type", ""), entity.get("notes", ""),
+                ),
+            )
+
+    def delete_entity(self, entity_id: str) -> None:
+        with self._conn() as conn:
+            conn.execute("DELETE FROM entities WHERE entity_id = ?", (entity_id,))
+
 
 # ---------------------------------------------------------------------------
 # Row → dict converters
@@ -242,6 +293,21 @@ def _row_to_template(row: sqlite3.Row) -> dict[str, Any]:
         d["system_prompt"] = ""
         d["legal_rules"] = []
     return d
+
+
+def _row_to_entity(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "entity_id": row["entity_id"],
+        "name": row["name"],
+        "nit": row["nit"],
+        "address": row["address"],
+        "city": row["city"],
+        "phone": row["phone"],
+        "email": row["email"],
+        "legal_rep": row["legal_rep"],
+        "entity_type": row["entity_type"],
+        "notes": row["notes"],
+    }
 
 
 # ---------------------------------------------------------------------------

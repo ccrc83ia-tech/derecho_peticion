@@ -24,7 +24,7 @@ from src.infrastructure.adapters.input.ui.constants import (
     APP_ICON,
     APP_SUBTITLE,
 )
-from src.infrastructure.adapters.input.ui.pages import company, generate, templates
+from src.infrastructure.adapters.input.ui.pages import company, entities, generate, templates
 from src.infrastructure.adapters.input.ui.state import is_api_online, load_tenants
 
 
@@ -55,6 +55,7 @@ with st.sidebar:
 _PAGES = {
     "generate": generate.render,
     "templates": templates.render,
+    "entities": entities.render,
     "company": company.render,
 }
 

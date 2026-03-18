@@ -160,6 +160,7 @@ def segmented(options: list[str], *, key: str) -> str:
 _NAV_ITEMS = [
     {"key": "generate",  "icon": "📄", "label": "Generar Documento"},
     {"key": "templates", "icon": "📋", "label": "Plantillas"},
+    {"key": "entities",  "icon": "🏛️", "label": "Entidades"},
     {"key": "company",   "icon": "🏢", "label": "Empresas"},
 ]
 
