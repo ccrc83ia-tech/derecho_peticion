@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
@@ -25,8 +24,20 @@ class TenantConfig(BaseModel):
     system_prompt: str
     legal_rules: list[str] = Field(default_factory=list)
     branding: Branding = Field(default_factory=Branding)
-    required_fields: list[str] = Field(default_factory=list)
     active: bool = True
+
+
+class Entity(BaseModel):
+    entity_id: str
+    name: str
+    nit: str = ""
+    address: str = ""
+    city: str = ""
+    phone: str = ""
+    email: str = ""
+    legal_rep: str = ""
+    entity_type: str = ""
+    notes: str = ""
 
 
 # --- Request / Response (aligned to OpenAPI contract) ---
@@ -58,12 +69,3 @@ class LegalContext(BaseModel):
     metadata: dict[str, str] = Field(default_factory=dict)
     temperature: float = 0.3
     max_output_tokens: int = 4096
-
-
-class GeneratedContent(BaseModel):
-    transaction_id: UUID
-    tenant_id: str
-    raw_text: str
-    file_path: str | None = None
-    status: DocumentStatus = DocumentStatus.COMPLETED
-    generated_at: datetime = Field(default_factory=datetime.utcnow)

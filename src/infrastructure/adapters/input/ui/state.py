@@ -104,19 +104,19 @@ def delete_template(template_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 def load_entities() -> list[dict[str, Any]]:
-    return _get_repo().get_all_entities()
+    return _get_repo().get_all()
 
 
 def get_entity(entity_id: str) -> dict[str, Any] | None:
-    return _get_repo().get_entity(entity_id)
+    return _get_repo().get_by_entity_id(entity_id)
 
 
 def upsert_entity(entity: dict[str, Any]) -> None:
-    _get_repo().upsert_entity(entity)
+    _get_repo().upsert(entity)
 
 
 def delete_entity(entity_id: str) -> None:
-    _get_repo().delete_entity(entity_id)
+    _get_repo().delete(entity_id)
 
 
 # ---------------------------------------------------------------------------

@@ -28,6 +28,7 @@ from ..constants import (
     TEXT_AREA_HEIGHT,
 )
 from ..state import get_template_documents, is_api_online, load_entities, load_templates, load_tenants
+from src.infrastructure.adapters.output.doc_generator import DocxEngine
 
 
 # ---------------------------------------------------------------------------
@@ -377,84 +378,4 @@ def _extract_text(file_bytes: bytes) -> str | None:
 
 
 def _rebuild_docx(text: str, branding: dict) -> bytes:
-    import io
-    import re
-    from docx import Document
-    from docx.shared import Pt, RGBColor, Cm
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-
-    doc = Document()
-    for section in doc.sections:
-        section.top_margin = Cm(2)
-        section.bottom_margin = Cm(2)
-        section.left_margin = Cm(2.5)
-        section.right_margin = Cm(2.5)
-
-    primary_color = branding.get("primary_color", DEFAULT_PRIMARY_COLOR)
-    try:
-        h = primary_color.lstrip("#")
-        rgb = RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
-    except (ValueError, IndexError):
-        rgb = RGBColor(0, 0, 0)
-
-    header_text = branding.get("header_text", "")
-    if header_text:
-        hp = doc.add_paragraph()
-        hp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        hr = hp.add_run(header_text)
-        hr.bold = True
-        hr.font.size = Pt(14)
-        hr.font.color.rgb = rgb
-
-        contact = [p for p in [
-            branding.get("nit", ""), branding.get("address", ""),
-            branding.get("phone", ""), branding.get("email", ""),
-        ] if p]
-        if contact:
-            cp = doc.add_paragraph()
-            cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            cr = cp.add_run(" · ".join(contact))
-            cr.font.size = Pt(8)
-            cr.font.color.rgb = RGBColor(120, 120, 120)
-
-        doc.add_paragraph("─" * 60)
-
-    pattern = re.compile(r"(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*)")
-    for line in text.split("\n"):
-        stripped = line.strip()
-        if not stripped:
-            doc.add_paragraph("")
-            continue
-        para = doc.add_paragraph()
-        last_end = 0
-        for match in pattern.finditer(stripped):
-            if match.start() > last_end:
-                para.add_run(stripped[last_end:match.start()])
-            if match.group(2):
-                r = para.add_run(match.group(2))
-                r.bold = True
-                r.italic = True
-            elif match.group(3):
-                r = para.add_run(match.group(3))
-                r.bold = True
-            elif match.group(4):
-                r = para.add_run(match.group(4))
-                r.italic = True
-            last_end = match.end()
-        if last_end < len(stripped):
-            para.add_run(stripped[last_end:])
-
-    footer_text = branding.get("footer_text", "")
-    if footer_text:
-        doc.add_paragraph("")
-        doc.add_paragraph("─" * 60)
-        fp = doc.add_paragraph()
-        fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        fr = fp.add_run(footer_text)
-        fr.font.size = Pt(8)
-        fr.italic = True
-        fr.font.color.rgb = RGBColor(120, 120, 120)
-
-    buf = io.BytesIO()
-    doc.save(buf)
-    return buf.getvalue()
+    return DocxEngine.build_bytes(text, branding)

@@ -12,8 +12,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.domain.models import TenantConfig
-from src.domain.ports.out_ports import TenantRepositoryPort
+from src.domain.models import TenantConfig, Entity
+from src.domain.ports.out_ports import TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort
 from src.infrastructure.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -98,7 +98,7 @@ def init_db(db_path: str | Path) -> None:
 # Tenant repository  (implements the domain port)
 # ---------------------------------------------------------------------------
 
-class SQLiteTenantRepository(TenantRepositoryPort):
+class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort):
 
     def __init__(self, db_path: str | Path = _DEFAULT_DB) -> None:
         self._db_path = Path(db_path)
@@ -135,14 +135,13 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                 conn.execute("UPDATE tenants SET active = 0 WHERE active = 1")
             conn.execute(
                 """
-                INSERT INTO tenants (tenant_id, name, system_prompt, legal_rules, branding, required_fields, active)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tenants (tenant_id, name, system_prompt, legal_rules, branding, active)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(tenant_id) DO UPDATE SET
                     name=excluded.name,
                     system_prompt=excluded.system_prompt,
                     legal_rules=excluded.legal_rules,
                     branding=excluded.branding,
-                    required_fields=excluded.required_fields,
                     active=excluded.active
                 """,
                 (
@@ -151,7 +150,6 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                     tenant.get("system_prompt", ""),
                     json.dumps(tenant.get("legal_rules", []), ensure_ascii=False),
                     json.dumps(tenant.get("branding", {}), ensure_ascii=False),
-                    json.dumps(tenant.get("required_fields", []), ensure_ascii=False),
                     is_active,
                 ),
             )
@@ -223,21 +221,21 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                 (template_id, doc_name),
             )
 
-    # --- Entities CRUD ---
+    # --- Entities CRUD (implements EntityRepositoryPort) ---
 
-    def get_all_entities(self) -> list[dict[str, Any]]:
+    def get_all(self) -> list[dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM entities ORDER BY name").fetchall()
         return [_row_to_entity(r) for r in rows]
 
-    def get_entity(self, entity_id: str) -> dict[str, Any] | None:
+    def get_by_entity_id(self, entity_id: str) -> dict[str, Any] | None:
         with self._conn() as conn:
             row = conn.execute(
                 "SELECT * FROM entities WHERE entity_id = ?", (entity_id,)
             ).fetchone()
         return _row_to_entity(row) if row else None
 
-    def upsert_entity(self, entity: dict[str, Any]) -> None:
+    def upsert(self, entity: dict[str, Any]) -> None:
         with self._conn() as conn:
             conn.execute(
                 """
@@ -257,7 +255,7 @@ class SQLiteTenantRepository(TenantRepositoryPort):
                 ),
             )
 
-    def delete_entity(self, entity_id: str) -> None:
+    def delete(self, entity_id: str) -> None:
         with self._conn() as conn:
             conn.execute("DELETE FROM entities WHERE entity_id = ?", (entity_id,))
 
@@ -273,7 +271,6 @@ def _row_to_tenant(row: sqlite3.Row) -> dict[str, Any]:
         "system_prompt": row["system_prompt"],
         "legal_rules": json.loads(row["legal_rules"]),
         "branding": json.loads(row["branding"]),
-        "required_fields": json.loads(row["required_fields"]),
         "active": bool(row["active"]),
     }
 

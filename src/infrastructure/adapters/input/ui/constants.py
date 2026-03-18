@@ -19,7 +19,7 @@ API_HOST: str = os.getenv("API_HOST", "localhost")
 API_PORT: str = os.getenv("API_PORT", "8000")
 API_BASE: str = os.getenv("API_BASE_URL", f"http://{API_HOST}:{API_PORT}")
 API_GENERATE_PATH: str = "/api/v1/documents/generate"
-API_HEALTH_PATH: str = "/docs"
+API_HEALTH_PATH: str = "/health"
 API_TIMEOUT_GENERATE: int = int(os.getenv("API_TIMEOUT_GENERATE", "120"))
 API_TIMEOUT_DOWNLOAD: int = int(os.getenv("API_TIMEOUT_DOWNLOAD", "30"))
 API_TIMEOUT_HEALTH: int = int(os.getenv("API_TIMEOUT_HEALTH", "3"))
@@ -93,6 +93,39 @@ MSG_SAVED: str = "✅ Guardado correctamente"
 MSG_DELETED: str = "🗑️ Eliminado correctamente"
 MSG_CONFIRM_DELETE: str = "¿Está seguro de eliminar «{name}»?"
 MSG_INVALID_COLOR: str = "Color inválido. Use formato hexadecimal (#RRGGBB)."
+
+# ---------------------------------------------------------------------------
+# Entity types (Colombia)
+# ---------------------------------------------------------------------------
+ENTITY_TYPES: list[str] = [
+    "EPS / Entidad de Salud",
+    "IPS / Prestador de Salud",
+    "ARL / Riesgos Laborales",
+    "Fondo de Pensiones / AFP",
+    "Colpensiones",
+    "Caja de Compensación Familiar",
+    "Banco / Entidad Financiera",
+    "Aseguradora",
+    "Cooperativa Financiera",
+    "Superintendencia",
+    "Ministerio",
+    "DIAN",
+    "Alcaldía / Gobernación",
+    "Personería / Defensoría del Pueblo",
+    "Fiscalía",
+    "Juzgado / Tribunal",
+    "Registraduría / RNEC",
+    "Migración Colombia",
+    "ICBF",
+    "Notaría",
+    "Empresa de Servicios Públicos",
+    "Operador de Telecomunicaciones",
+    "Entidad de Tránsito / SIMIT",
+    "Universidad / Institución Educativa",
+    "Constructora / Inmobiliaria",
+    "Empleador / Empresa Privada",
+    "Otro",
+]
 
 # ---------------------------------------------------------------------------
 # DOCX MIME

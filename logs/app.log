@@ -789,3 +789,104 @@
 2026-03-17 15:23:50 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
 2026-03-17 15:23:50 | INFO     | main | Container initialized successfully
 2026-03-17 15:23:50 | INFO     | main | FastAPI app ready — routes registered
+2026-03-18 17:33:22 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — legal_engine.db
+2026-03-18 17:35:01 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — legal_engine.db
+2026-03-18 17:38:17 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — legal_engine.db
+2026-03-18 17:44:02 | INFO     | main | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:44:02 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:44:02 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:44:02 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:44:05 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:44:05 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:44:08 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:44:08 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:44:08 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:44:08 | INFO     | main | Container initialized successfully
+2026-03-18 17:44:09 | INFO     | main | FastAPI app ready — routes registered
+2026-03-18 17:45:33 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:45:33 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:45:54 | INFO     | __main__ | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:45:54 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:45:54 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:45:54 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:45:56 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:45:56 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:45:58 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:45:58 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:45:58 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:45:58 | INFO     | __main__ | Container initialized successfully
+2026-03-18 17:45:58 | INFO     | __main__ | FastAPI app ready — routes registered
+2026-03-18 17:46:06 | INFO     | __mp_main__ | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:46:06 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:06 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:06 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:46:09 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:46:09 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:46:11 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:46:11 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:46:11 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:11 | INFO     | __mp_main__ | Container initialized successfully
+2026-03-18 17:46:12 | INFO     | __mp_main__ | FastAPI app ready — routes registered
+2026-03-18 17:46:12 | INFO     | main | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:46:12 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:12 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:12 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:46:14 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:14 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:15 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:46:15 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:46:17 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:46:17 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:46:17 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:46:17 | INFO     | main | Container initialized successfully
+2026-03-18 17:46:17 | INFO     | main | FastAPI app ready — routes registered
+2026-03-18 17:49:24 | INFO     | watchfiles.main | 1 change detected
+2026-03-18 17:50:18 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:18 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:18 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:18 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:48 | INFO     | watchfiles.main | 11 changes detected
+2026-03-18 17:50:57 | INFO     | __mp_main__ | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:50:57 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:57 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:50:57 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:51:00 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:51:00 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:51:02 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:51:02 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:51:02 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:02 | INFO     | __mp_main__ | Container initialized successfully
+2026-03-18 17:51:02 | INFO     | __mp_main__ | FastAPI app ready — routes registered
+2026-03-18 17:51:03 | INFO     | main | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:51:03 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:03 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:03 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:51:05 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:51:05 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:51:07 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:51:07 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:51:07 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:07 | INFO     | main | Container initialized successfully
+2026-03-18 17:51:07 | INFO     | main | FastAPI app ready — routes registered
+2026-03-18 17:51:28 | INFO     | __mp_main__ | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:51:28 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:28 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:28 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:51:30 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:51:30 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:51:32 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:51:32 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:51:32 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:32 | INFO     | __mp_main__ | Container initialized successfully
+2026-03-18 17:51:32 | INFO     | __mp_main__ | FastAPI app ready — routes registered
+2026-03-18 17:51:32 | INFO     | main | Starting application — project root: C:\proyecto\derecho_peticion
+2026-03-18 17:51:32 | INFO     | src.infrastructure.container | DB path resolved: C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:32 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:32 | INFO     | src.infrastructure.container | SQLite repository initialized
+2026-03-18 17:51:34 | INFO     | src.infrastructure.container | Gemini configured — model=gemini-2.5-flash key=SET
+2026-03-18 17:51:34 | INFO     | src.infrastructure.adapters.output.doc_generator | DocxEngine output dir: C:\proyecto\derecho_peticion\generated_docs
+2026-03-18 17:51:37 | INFO     | src.infrastructure.adapters.output.knowledge_base | ChromaKnowledgeBase ready — C:\proyecto\derecho_peticion\chroma_db
+2026-03-18 17:51:37 | INFO     | src.infrastructure.container | Knowledge base: ENABLED
+2026-03-18 17:51:37 | INFO     | src.infrastructure.adapters.output.db_sqlite | SQLiteTenantRepository ready — C:\proyecto\derecho_peticion\legal_engine.db
+2026-03-18 17:51:37 | INFO     | main | Container initialized successfully
+2026-03-18 17:51:37 | INFO     | main | FastAPI app ready — routes registered

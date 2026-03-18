@@ -50,6 +50,6 @@ class DocumentController:
         except DomainException as e:
             logger.error("Domain error: %s", e.message)
             raise HTTPException(status_code=500, detail=e.message) from e
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error during generation")
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise HTTPException(status_code=500, detail="Error interno al generar el documento")

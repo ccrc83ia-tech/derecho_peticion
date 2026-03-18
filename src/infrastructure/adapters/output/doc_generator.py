@@ -1,5 +1,6 @@
 """DOCX exporter — converts AI-generated raw text into a branded Word document."""
 
+import io
 import re
 from pathlib import Path
 
@@ -25,34 +26,50 @@ class DocxEngine(FileExporterPort):
         logger.info("DocxEngine output dir: %s", self._output_dir)
 
     async def export(self, content: str, branding: Branding, file_name: str) -> str:
+        doc = self._build_doc(content, branding.__dict__)
+        file_path = self._output_dir / file_name
+        doc.save(str(file_path))
+        logger.info("Document saved: %s", file_path)
+        return file_name
+
+    @classmethod
+    def build_bytes(cls, content: str, branding: dict) -> bytes:
+        """Build a branded DOCX in memory and return raw bytes."""
+        doc = cls._build_doc(content, branding)
+        buf = io.BytesIO()
+        doc.save(buf)
+        return buf.getvalue()
+
+    @classmethod
+    def _build_doc(cls, content: str, branding: dict) -> Document:
+        """Core builder shared by export() and build_bytes()."""
         doc = Document()
 
-        # Page margins
         for section in doc.sections:
             section.top_margin = Cm(2)
             section.bottom_margin = Cm(2)
             section.left_margin = Cm(2.5)
             section.right_margin = Cm(2.5)
 
-        primary_rgb = self._parse_color(branding.primary_color)
+        primary_rgb = cls._parse_color(branding.get("primary_color", "#000000"))
 
         # ── Header ─────────────────────────────────────────────────────────
-        if branding.header_text:
+        header_text = branding.get("header_text", "")
+        if header_text:
             h = doc.add_paragraph()
             h.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = h.add_run(branding.header_text)
+            run = h.add_run(header_text)
             run.bold = True
             run.font.size = Pt(14)
             if primary_rgb:
                 run.font.color.rgb = RGBColor(*primary_rgb)
 
-            # Contact info from branding
             contact_parts = [
                 p for p in [
-                    branding.nit,
-                    branding.address,
-                    branding.phone,
-                    branding.email,
+                    branding.get("nit", ""),
+                    branding.get("address", ""),
+                    branding.get("phone", ""),
+                    branding.get("email", ""),
                 ] if p
             ]
             if contact_parts:
@@ -62,34 +79,31 @@ class DocxEngine(FileExporterPort):
                 cr.font.size = Pt(8)
                 cr.font.color.rgb = RGBColor(120, 120, 120)
 
-            # Separator line
             doc.add_paragraph("─" * 60)
 
         # ── Body — parse raw markdown from AI ──────────────────────────────
-        clean = self._strip_markdown_fences(content)
+        clean = cls._strip_markdown_fences(content)
         for line in clean.split("\n"):
             stripped = line.strip()
             if not stripped:
                 doc.add_paragraph("")
                 continue
             para = doc.add_paragraph()
-            self._add_formatted_runs(para, stripped)
+            cls._add_formatted_runs(para, stripped)
 
         # ── Footer ─────────────────────────────────────────────────────────
-        if branding.footer_text:
+        footer_text = branding.get("footer_text", "")
+        if footer_text:
             doc.add_paragraph("")
             doc.add_paragraph("─" * 60)
             f = doc.add_paragraph()
             f.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            fr = f.add_run(branding.footer_text)
+            fr = f.add_run(footer_text)
             fr.font.size = Pt(8)
             fr.italic = True
             fr.font.color.rgb = RGBColor(120, 120, 120)
 
-        file_path = self._output_dir / file_name
-        doc.save(str(file_path))
-        logger.info("Document saved: %s", file_path)
-        return file_name
+        return doc
 
     @staticmethod
     def _strip_markdown_fences(text: str) -> str:

@@ -26,7 +26,6 @@ def _empty_tenant() -> dict:
         "active": True,
         "system_prompt": "",
         "legal_rules": [],
-        "required_fields": [],
         "branding": {
             "logo_url": "",
             "header_text": "",
@@ -194,7 +193,6 @@ def render() -> None:
                 "active": active,
                 "system_prompt": "",
                 "legal_rules": [],
-                "required_fields": [],
                 "branding": {
                     "logo_url": logo_url.strip(),
                     "header_text": header_text.strip(),

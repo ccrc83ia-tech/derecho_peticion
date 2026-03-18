@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
-from src.domain.models import Branding, LegalContext, TenantConfig
+from src.domain.models import Branding, Entity, LegalContext, TenantConfig
 
 
 class AIServicePort(ABC):
@@ -15,6 +16,53 @@ class TenantRepositoryPort(ABC):
 
     @abstractmethod
     async def get_by_id(self, tenant_id: str) -> TenantConfig | None: ...
+
+    @abstractmethod
+    def get_all_tenants(self) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def upsert_tenant(self, tenant: dict[str, Any]) -> None: ...
+
+    @abstractmethod
+    def delete_tenant(self, tenant_id: str) -> None: ...
+
+
+class TemplateRepositoryPort(ABC):
+    """Contract for template persistence (includes associated documents)."""
+
+    @abstractmethod
+    def get_all_templates(self) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def upsert_template(self, template: dict[str, Any]) -> None: ...
+
+    @abstractmethod
+    def delete_template(self, template_id: str) -> None: ...
+
+    @abstractmethod
+    def get_template_documents(self, template_id: str) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def upsert_template_document(self, template_id: str, doc_name: str, file_type: str, chunks_count: int) -> None: ...
+
+    @abstractmethod
+    def delete_template_document(self, template_id: str, doc_name: str) -> None: ...
+
+
+class EntityRepositoryPort(ABC):
+    """Contract for recipient-entity persistence."""
+
+    @abstractmethod
+    def get_all(self) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def get_by_entity_id(self, entity_id: str) -> dict[str, Any] | None: ...
+
+    @abstractmethod
+    def upsert(self, entity: dict[str, Any]) -> None: ...
+
+    @abstractmethod
+    def delete(self, entity_id: str) -> None: ...
 
 
 class FileExporterPort(ABC):

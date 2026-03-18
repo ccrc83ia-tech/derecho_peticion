@@ -8,20 +8,8 @@ import streamlit as st
 import streamlit_antd_components as sac
 
 from ..components import empty_state, page_header, section_title, segmented, spacer
+from ..constants import ENTITY_TYPES
 from ..state import delete_entity, load_entities, upsert_entity
-
-ENTITY_TYPES = [
-    "EPS / Salud",
-    "Fondo de Pensiones",
-    "Banco / Entidad Financiera",
-    "Alcaldía / Gobernación",
-    "Ministerio",
-    "Superintendencia",
-    "Empresa de Servicios Públicos",
-    "Empleador",
-    "Aseguradora",
-    "Otro",
-]
 
 
 def _empty_entity() -> dict:
