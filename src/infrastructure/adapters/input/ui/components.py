@@ -158,10 +158,11 @@ def segmented(options: list[str], *, key: str) -> str:
 # ---------------------------------------------------------------------------
 
 _NAV_ITEMS = [
-    {"key": "generate",  "icon": "📄", "label": "Generar Documento"},
-    {"key": "templates", "icon": "📋", "label": "Plantillas"},
-    {"key": "entities",  "icon": "🏛️", "label": "Entidades"},
-    {"key": "company",   "icon": "🏢", "label": "Empresas"},
+    {"key": "generate",  "icon": "📄", "label": "Generar Documento", "perm": "generate_document"},
+    {"key": "templates", "icon": "📋", "label": "Plantillas",        "perm": "view_templates"},
+    {"key": "entities",  "icon": "🏛️", "label": "Entidades",         "perm": "view_entities"},
+    {"key": "company",   "icon": "🏢", "label": "Empresas",          "perm": "view_company"},
+    {"key": "users",     "icon": "👥", "label": "Usuarios",          "perm": "manage_users"},
 ]
 
 
@@ -176,13 +177,20 @@ def sidebar_brand(icon: str, title: str, subtitle: str) -> None:
     )
 
 
-def sidebar_nav() -> str:
+def sidebar_nav(user_permissions: set[str] | None = None) -> str:
     """Render sidebar navigation using native radio, return page key."""
     if "nav_page" not in st.session_state:
         st.session_state["nav_page"] = "generate"
 
-    labels = [f"{item['icon']}  {item['label']}" for item in _NAV_ITEMS]
-    keys = [item["key"] for item in _NAV_ITEMS]
+    visible = [
+        item for item in _NAV_ITEMS
+        if user_permissions is None or item.get("perm", "") in user_permissions
+    ]
+    if not visible:
+        visible = [_NAV_ITEMS[0]]
+
+    labels = [f"{item['icon']}  {item['label']}" for item in visible]
+    keys = [item["key"] for item in visible]
 
     current_idx = keys.index(st.session_state["nav_page"]) if st.session_state["nav_page"] in keys else 0
 

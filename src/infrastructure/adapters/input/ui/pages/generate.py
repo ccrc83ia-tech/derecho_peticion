@@ -24,6 +24,7 @@ from ..constants import (
     MSG_SUCCESS,
     PAGE_COMPANY,
     PAGE_TEMPLATES,
+    PDF_MIME,
     TEXT_AREA_FIELDS,
     TEXT_AREA_HEIGHT,
 )
@@ -327,9 +328,11 @@ def _show_last_result(tenant: dict) -> None:
     st.session_state["last_doc_text"] = edited_text
 
     edited_bytes = _rebuild_docx(edited_text, branding)
+    pdf_bytes = _rebuild_pdf(edited_text, branding)
+    file_name_base = file_name.rsplit(".", 1)[0]
 
-    col_dl, col_reset = st.columns([3, 1])
-    with col_dl:
+    col_dl_docx, col_dl_pdf, col_reset = st.columns([2, 2, 1])
+    with col_dl_docx:
         st.download_button(
             label="📥 Descargar DOCX",
             data=edited_bytes,
@@ -337,6 +340,15 @@ def _show_last_result(tenant: dict) -> None:
             mime=DOCX_MIME,
             use_container_width=True,
             key="gen_download",
+        )
+    with col_dl_pdf:
+        st.download_button(
+            label="📥 Descargar PDF",
+            data=pdf_bytes,
+            file_name=f"{file_name_base}.pdf",
+            mime=PDF_MIME,
+            use_container_width=True,
+            key="gen_download_pdf",
         )
     with col_reset:
         if st.button("🔄 Restaurar", use_container_width=True, key="gen_reset"):
@@ -379,3 +391,7 @@ def _extract_text(file_bytes: bytes) -> str | None:
 
 def _rebuild_docx(text: str, branding: dict) -> bytes:
     return DocxEngine.build_bytes(text, branding)
+
+
+def _rebuild_pdf(text: str, branding: dict) -> bytes:
+    return DocxEngine.build_pdf_bytes(text, branding)

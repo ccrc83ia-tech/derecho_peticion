@@ -18,3 +18,14 @@ class DocumentGenerationException(DomainException):
 class InvalidSchemaException(DomainException):
     def __init__(self, missing: list[str]) -> None:
         super().__init__(f"Missing required fields: {', '.join(missing)}", "INVALID_SCHEMA")
+
+
+class AuthenticationException(DomainException):
+    def __init__(self, reason: str = "Credenciales inválidas") -> None:
+        super().__init__(reason, "AUTH_FAILED")
+
+
+class AuthorizationException(DomainException):
+    def __init__(self, permission: str = "") -> None:
+        msg = f"Sin permiso: {permission}" if permission else "Acceso denegado"
+        super().__init__(msg, "FORBIDDEN")

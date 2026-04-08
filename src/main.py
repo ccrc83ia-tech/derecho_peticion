@@ -67,6 +67,11 @@ async def rate_limit(request: Request, call_next):
         if len(window) >= _RATE_LIMIT:
             return Response("Rate limit exceeded", status_code=429)
         window.append(now)
+        # Purge stale IPs periodically
+        if len(_rate_store) > 1000:
+            stale = [ip for ip, ts in _rate_store.items() if not ts or now - ts[-1] > 120]
+            for ip in stale:
+                _rate_store.pop(ip, None)
     return await call_next(request)
 
 # --- Health endpoint ---

@@ -9,7 +9,7 @@ import streamlit_antd_components as sac
 
 from ..components import empty_state, page_header, section_title, segmented, spacer
 from ..constants import ENTITY_TYPES
-from ..state import delete_entity, load_entities, upsert_entity
+from ..state import delete_entity, has_permission, load_entities, upsert_entity
 
 
 def _empty_entity() -> dict:
@@ -41,12 +41,17 @@ def render() -> None:
     page_header("🏛️", "Entidades Destinatarias",
                 "Registre las entidades a las que se dirigen los documentos (EPS, bancos, entidades públicas, etc.).")
 
+    can_manage = has_permission("manage_entities")
+
     entities = load_entities()
     entity_map = {e["entity_id"]: e for e in entities}
 
     col_action, col_sel = st.columns([1, 2])
     with col_action:
-        action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="ent_action")
+        if can_manage:
+            action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="ent_action")
+        else:
+            action = "✏️ Editar existente"
 
     is_edit = action == "✏️ Editar existente"
 
@@ -110,6 +115,9 @@ def render() -> None:
 
     # ── Actions ────────────────────────────────────────────────────────────
     spacer()
+    if not can_manage:
+        return
+
     col_save, col_del = st.columns([3, 1])
 
     with col_save:

@@ -1,88 +1,143 @@
 [
   {
-    "template_id": "REQ-PENSIONAL-V1",
+    "template_id": "PETICION-GENERAL-V1",
+    "name": "Derecho de Petición General",
+    "description": "Solicitudes formales ante cualquier entidad pública o privada que preste servicios públicos.",
+    "system_prompt": "Eres un abogado colombiano senior con 20 años de experiencia en derecho administrativo. Redacta derechos de petición formales, claros y contundentes conforme a la Ley 1755 de 2015 y el artículo 23 de la Constitución Política. El documento debe tener la siguiente estructura obligatoria:\n1. Encabezado con ciudad, fecha y datos del destinatario\n2. Identificación completa del peticionario\n3. Objeto de la petición (claro y preciso en máximo 2 líneas)\n4. Hechos numerados y cronológicos que fundamentan la solicitud\n5. Peticiones concretas numeradas (use 'PRIMERO:', 'SEGUNDO:', etc.)\n6. Fundamentos de derecho citando artículos específicos\n7. Notificaciones\n8. Firma\nUsa lenguaje jurídico formal pero comprensible. Nunca uses lenguaje coloquial. Cita textualmente las normas cuando sea pertinente. El tono debe ser respetuoso pero firme. Incluye siempre el término legal de respuesta (15 días hábiles para peticiones generales, 10 para información).",
+    "legal_rules": [
+      "Artículo 23 Constitución Política de Colombia — Derecho fundamental de petición",
+      "Ley 1755 de 2015 — Regula el derecho fundamental de petición",
+      "Artículo 14 Ley 1755/2015 — Términos para resolver (15 días hábiles)",
+      "Artículo 13 CPACA — Objeto y modalidades del derecho de petición",
+      "Artículo 19 Ley 1755/2015 — Peticiones entre autoridades"
+    ],
+    "fields": [
+      { "key": "cliente_nombre", "label": "Nombre completo del peticionario", "required": true },
+      { "key": "cedula", "label": "Cédula de ciudadanía", "required": true },
+      { "key": "direccion", "label": "Dirección de residencia", "required": true },
+      { "key": "ciudad", "label": "Ciudad", "required": true },
+      { "key": "telefono", "label": "Teléfono de contacto", "required": true },
+      { "key": "correo", "label": "Correo electrónico", "required": true },
+      { "key": "entidad_demandada", "label": "Entidad destinataria", "required": true },
+      { "key": "cargo_destinatario", "label": "Cargo del destinatario (ej: Gerente, Director)", "required": false },
+      { "key": "objeto_peticion", "label": "Objeto de la petición (qué solicita)", "required": true },
+      { "key": "hechos_crudos", "label": "Hechos del caso (describa cronológicamente)", "required": true }
+    ]
+  },
+  {
+    "template_id": "PETICION-SALUD-V1",
+    "name": "Derecho de Petición — Salud",
+    "description": "Autorización de procedimientos, medicamentos, citas, cirugías y servicios médicos ante EPS e IPS.",
+    "system_prompt": "Eres un abogado colombiano senior especialista en derecho a la salud con amplia experiencia litigando contra EPS e IPS. Redacta derechos de petición en materia de salud con máxima contundencia jurídica. El documento debe:\n1. Invocar expresamente el derecho fundamental a la salud (Ley 1751/2015) y su conexidad con la vida\n2. Identificar con precisión el servicio, medicamento o procedimiento negado o demorado\n3. Citar el diagnóstico médico y la prescripción del médico tratante\n4. Señalar el tiempo de espera o negativa y sus consecuencias para la salud del paciente\n5. Advertir expresamente que la negativa configura vulneración de derechos fundamentales susceptible de tutela\n6. Solicitar respuesta en el término legal de 15 días hábiles, con advertencia de acción de tutela inmediata ante incumplimiento\n7. Incluir peticiones subsidiarias (si no autorizan el servicio, que expliquen por escrito el fundamento legal de la negativa)\nEstructura: encabezado, identificación, hechos numerados, fundamentos de derecho, peticiones concretas, notificaciones. Tono: firme, técnico, sin agresividad pero con claridad sobre las consecuencias jurídicas del incumplimiento.",
+    "legal_rules": [
+      "Ley 1751 de 2015 — Derecho fundamental a la salud",
+      "Artículo 49 Constitución Política — Derecho a la salud y saneamiento ambiental",
+      "Resolución 2292 de 2021 — Lista de servicios y tecnologías en salud (Mi Plan)",
+      "Artículo 6 Ley 1751/2015 — Elementos del derecho fundamental a la salud",
+      "Artículo 10 Ley 1751/2015 — Derechos y deberes de las personas relacionados con la salud",
+      "Ley 1755 de 2015 — Derecho de petición (término de respuesta 15 días hábiles)"
+    ],
+    "fields": [
+      { "key": "cliente_nombre", "label": "Nombre completo del paciente", "required": true },
+      { "key": "cedula", "label": "Cédula de ciudadanía", "required": true },
+      { "key": "direccion", "label": "Dirección de residencia", "required": true },
+      { "key": "ciudad", "label": "Ciudad", "required": true },
+      { "key": "telefono", "label": "Teléfono de contacto", "required": true },
+      { "key": "correo", "label": "Correo electrónico", "required": false },
+      { "key": "entidad_demandada", "label": "EPS o IPS destinataria", "required": true },
+      { "key": "numero_afiliacion", "label": "Número de afiliación / carné EPS", "required": false },
+      { "key": "medico_tratante", "label": "Nombre del médico tratante", "required": true },
+      { "key": "diagnostico", "label": "Diagnóstico médico (código CIE-10 si lo tiene)", "required": true },
+      { "key": "servicio_solicitado", "label": "Servicio, medicamento o procedimiento solicitado", "required": true },
+      { "key": "fecha_prescripcion", "label": "Fecha de la prescripción médica", "required": true },
+      { "key": "hechos_crudos", "label": "Hechos: describa la negativa o demora y sus consecuencias", "required": true }
+    ]
+  },
+  {
+    "template_id": "PETICION-PENSIONAL-V1",
     "name": "Derecho de Petición — Pensional",
-    "description": "Plantilla para derechos de petición relacionados con trámites pensionales ante entidades públicas colombianas.",
+    "description": "Reconocimiento, reliquidación, sustitución pensional e historial laboral ante Colpensiones y fondos privados.",
+    "system_prompt": "Eres un abogado colombiano senior con especialización en derecho pensional y seguridad social, con más de 15 años de experiencia en litigios contra Colpensiones y fondos privados de pensiones. Redacta derechos de petición pensionales con rigor técnico y jurídico. El documento debe:\n1. Identificar con precisión el tipo de prestación pensional solicitada (vejez, invalidez, sobrevivientes, reliquidación)\n2. Señalar el régimen pensional aplicable (RPM — Colpensiones o RAIS — fondo privado)\n3. Citar las semanas cotizadas, el IBL (Ingreso Base de Liquidación) y la edad del peticionario cuando sea relevante\n4. Invocar el principio de favorabilidad en materia pensional y la condición más beneficiosa\n5. Referenciar la jurisprudencia de la Corte Constitucional y Corte Suprema de Justicia aplicable\n6. Solicitar de forma subsidiaria el historial de semanas cotizadas y el extracto de cuenta individual\n7. Advertir sobre el derecho a la indexación de la primera mesada pensional\nEstructura obligatoria: encabezado, identificación del peticionario, hechos numerados y cronológicos, fundamentos de derecho, peticiones concretas numeradas, notificaciones. Lenguaje técnico-jurídico preciso.",
+    "legal_rules": [
+      "Ley 100 de 1993 — Sistema General de Seguridad Social Integral",
+      "Acto Legislativo 01 de 2005 — Reforma pensional constitucional",
+      "Ley 797 de 2003 — Reforma al sistema general de pensiones",
+      "Decreto 758 de 1990 — Régimen de prima media con prestación definida (Acuerdo 049)",
+      "Artículo 48 Constitución Política — Derecho irrenunciable a la seguridad social",
+      "Sentencia C-258 de 2013 Corte Constitucional — Sostenibilidad financiera del sistema pensional",
+      "Ley 1755 de 2015 — Derecho de petición"
+    ],
     "fields": [
-      {
-        "key": "cliente_nombre",
-        "label": "Nombre del Cliente",
-        "required": true
-      },
-      {
-        "key": "cedula",
-        "label": "Cédula de Ciudadanía",
-        "required": true
-      },
-      {
-        "key": "entidad_demandada",
-        "label": "Entidad Demandada",
-        "required": true
-      },
-      {
-        "key": "hechos_crudos",
-        "label": "Hechos del Caso",
-        "required": true
-      }
+      { "key": "cliente_nombre", "label": "Nombre completo del peticionario", "required": true },
+      { "key": "cedula", "label": "Cédula de ciudadanía", "required": true },
+      { "key": "fecha_nacimiento", "label": "Fecha de nacimiento", "required": true },
+      { "key": "direccion", "label": "Dirección de residencia", "required": true },
+      { "key": "ciudad", "label": "Ciudad", "required": true },
+      { "key": "telefono", "label": "Teléfono de contacto", "required": true },
+      { "key": "correo", "label": "Correo electrónico", "required": false },
+      { "key": "entidad_demandada", "label": "Entidad pensional (Colpensiones / Fondo)", "required": true },
+      { "key": "tipo_pension", "label": "Tipo de pensión solicitada (vejez, invalidez, sobrevivientes, reliquidación)", "required": true },
+      { "key": "regimen_pensional", "label": "Régimen pensional (RPM — Colpensiones / RAIS — Fondo privado)", "required": true },
+      { "key": "semanas_cotizadas", "label": "Semanas cotizadas aproximadas (si las conoce)", "required": false },
+      { "key": "empleadores", "label": "Empleadores principales (nombres y períodos)", "required": false },
+      { "key": "hechos_crudos", "label": "Hechos: describa la situación pensional y lo que solicita", "required": true }
     ]
   },
   {
-    "template_id": "CORPORATE-LETTER-V1",
-    "name": "Corporate Legal Letter",
-    "description": "Template for formal corporate legal correspondence.",
+    "template_id": "ACCION-TUTELA-V1",
+    "name": "Acción de Tutela",
+    "description": "Mecanismo constitucional de protección inmediata de derechos fundamentales vulnerados o amenazados.",
+    "system_prompt": "Eres un abogado constitucionalista colombiano senior con profundo conocimiento en acción de tutela y jurisprudencia de la Corte Constitucional. Redacta acciones de tutela técnicamente impecables que maximicen las posibilidades de éxito. El documento debe:\n1. Identificar con precisión el juez competente (juez del lugar de los hechos o del domicilio del accionante)\n2. Individualizar al accionante y al accionado con todos sus datos\n3. Identificar con claridad y precisión el derecho fundamental vulnerado o amenazado\n4. Narrar los hechos de forma cronológica, clara y contundente, destacando la urgencia y la inminencia del perjuicio\n5. Demostrar la vulneración o amenaza del derecho fundamental con argumentos jurídicos sólidos\n6. Invocar la jurisprudencia constitucional relevante de la Corte Constitucional (sentencias T- y SU-)\n7. Formular pretensiones concretas, claras y realizables por el juez\n8. Solicitar medida provisional si hay urgencia manifiesta\n9. Acreditar la subsidiariedad (inexistencia de otro mecanismo eficaz o perjuicio irremediable)\nEstructura: identificación del juez, datos del accionante, datos del accionado, derechos vulnerados, hechos numerados, fundamentos jurídicos, pretensiones, pruebas, juramento, firma. Tono: urgente, técnico, constitucional.",
+    "legal_rules": [
+      "Artículo 86 Constitución Política de Colombia — Acción de tutela",
+      "Decreto 2591 de 1991 — Reglamentación de la acción de tutela",
+      "Artículo 10 Decreto 2591/1991 — Legitimidad e interés para actuar",
+      "Artículo 13 Decreto 2591/1991 — Personas contra quienes se puede dirigir",
+      "Artículo 7 Decreto 2591/1991 — Medidas provisionales para proteger el derecho",
+      "Artículo 6 Decreto 2591/1991 — Causales de improcedibilidad",
+      "Sentencia T-406 de 1992 Corte Constitucional — Eficacia directa de los derechos fundamentales"
+    ],
     "fields": [
-      {
-        "key": "client_name",
-        "label": "Client Name",
-        "required": true
-      },
-      {
-        "key": "subject",
-        "label": "Subject",
-        "required": true
-      },
-      {
-        "key": "body",
-        "label": "Body",
-        "required": true
-      }
+      { "key": "cliente_nombre", "label": "Nombre completo del accionante", "required": true },
+      { "key": "cedula", "label": "Cédula de ciudadanía del accionante", "required": true },
+      { "key": "direccion", "label": "Dirección de residencia del accionante", "required": true },
+      { "key": "ciudad", "label": "Ciudad donde ocurrieron los hechos", "required": true },
+      { "key": "telefono", "label": "Teléfono de contacto", "required": true },
+      { "key": "correo", "label": "Correo electrónico", "required": false },
+      { "key": "entidad_demandada", "label": "Entidad o persona accionada", "required": true },
+      { "key": "representante_accionado", "label": "Representante legal del accionado", "required": false },
+      { "key": "derecho_vulnerado", "label": "Derecho(s) fundamental(es) vulnerado(s)", "required": true },
+      { "key": "solicitud_medida_provisional", "label": "¿Solicita medida provisional? (Sí/No y por qué)", "required": false },
+      { "key": "mecanismos_previos", "label": "Mecanismos previos agotados (derechos de petición, recursos, etc.)", "required": true },
+      { "key": "hechos_crudos", "label": "Hechos: narre cronológicamente la vulneración del derecho", "required": true }
     ]
   },
   {
-    "template_id": "Derechos",
-    "name": "1.0",
-    "description": "",
+    "template_id": "RECURSO-REPOSICION-V1",
+    "name": "Recurso de Reposición",
+    "description": "Impugnación de actos administrativos ante la misma autoridad que los expidió. Requisito previo al de apelación.",
+    "system_prompt": "Eres un abogado colombiano senior especialista en derecho administrativo y procedimiento administrativo. Redacta recursos de reposición técnicamente sólidos conforme al CPACA (Ley 1437 de 2011). El documento debe:\n1. Identificar con precisión el acto administrativo impugnado (número, fecha, autoridad que lo expidió)\n2. Señalar la oportunidad procesal (dentro de los 10 días hábiles siguientes a la notificación)\n3. Exponer los cargos contra el acto de forma clara y ordenada: vicios de forma, vicios de fondo, falsa motivación, desviación de poder, violación de normas superiores\n4. Desarrollar cada cargo con argumentos jurídicos precisos, citando las normas violadas y la jurisprudencia del Consejo de Estado aplicable\n5. Solicitar la revocatoria total o parcial del acto y su sustitución por uno ajustado a derecho\n6. Si aplica, solicitar la suspensión de los efectos del acto mientras se resuelve el recurso\n7. Proponer pruebas si son necesarias para demostrar los cargos\nEstructura: encabezado con datos del recurrente, identificación del acto impugnado, oportunidad, cargos numerados con sus fundamentos, peticiones, pruebas, notificaciones. Lenguaje técnico-administrativo preciso y contundente.",
+    "legal_rules": [
+      "Artículo 74 Ley 1437 de 2011 CPACA — Recursos contra los actos administrativos",
+      "Artículo 76 CPACA — Recurso de reposición (término 10 días hábiles)",
+      "Artículo 77 CPACA — Recurso de apelación",
+      "Artículo 137 CPACA — Nulidad de los actos administrativos",
+      "Artículo 138 CPACA — Nulidad y restablecimiento del derecho",
+      "Artículo 3 CPACA — Principios del procedimiento administrativo",
+      "Artículo 29 Constitución Política — Debido proceso administrativo"
+    ],
     "fields": [
-      {
-        "key": "cliente_nombre",
-        "label": "Nombre del Cliente",
-        "required": true
-      },
-      {
-        "key": "cedula",
-        "label": "Cédula de Ciudadanía",
-        "required": true
-      },
-      {
-        "key": "entidad_demandada",
-        "label": "Entidad Demandada",
-        "required": true
-      },
-      {
-        "key": "hechos_crudos",
-        "label": "Hechos del Caso",
-        "required": true
-      },
-      {
-        "key": "direccion",
-        "label": "Dirección de Residencia",
-        "required": true
-      },
-      {
-        "key": "correo",
-        "label": "Correo Electronico",
-        "required": true
-      }
+      { "key": "cliente_nombre", "label": "Nombre completo del recurrente", "required": true },
+      { "key": "cedula", "label": "Cédula de ciudadanía", "required": true },
+      { "key": "direccion", "label": "Dirección de residencia", "required": true },
+      { "key": "ciudad", "label": "Ciudad", "required": true },
+      { "key": "telefono", "label": "Teléfono de contacto", "required": true },
+      { "key": "correo", "label": "Correo electrónico", "required": false },
+      { "key": "entidad_demandada", "label": "Entidad que expidió el acto", "required": true },
+      { "key": "acto_impugnado", "label": "Identificación del acto (Resolución/Oficio N°, fecha)", "required": true },
+      { "key": "fecha_notificacion", "label": "Fecha de notificación del acto", "required": true },
+      { "key": "contenido_acto", "label": "¿Qué decidió el acto? (resuma la decisión impugnada)", "required": true },
+      { "key": "hechos_crudos", "label": "Cargos y argumentos contra el acto administrativo", "required": true }
     ]
   }
 ]

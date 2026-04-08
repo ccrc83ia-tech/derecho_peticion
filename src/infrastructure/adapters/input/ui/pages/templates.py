@@ -28,6 +28,7 @@ from ..state import (
     delete_document,
     delete_template,
     get_template_documents,
+    has_permission,
     ingest_document,
     load_templates,
     upsert_template,
@@ -63,12 +64,17 @@ def render() -> None:
     page_header("📋", "Gestión de Plantillas",
                 "Cree y administre las plantillas de documentos con sus campos dinámicos.")
 
+    can_manage = has_permission("manage_templates")
+
     templates = load_templates()
     template_map = {t["template_id"]: t for t in templates}
 
     col_action, col_sel = st.columns([1, 2])
     with col_action:
-        action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="tpl_action")
+        if can_manage:
+            action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="tpl_action")
+        else:
+            action = "✏️ Editar existente"
 
     is_edit = action == "✏️ Editar existente"
 
@@ -251,6 +257,9 @@ def render() -> None:
 
     # ── Actions ────────────────────────────────────────────────────────────
     spacer()
+    if not can_manage:
+        return
+
     col_save, col_del = st.columns([3, 1])
 
     with col_save:

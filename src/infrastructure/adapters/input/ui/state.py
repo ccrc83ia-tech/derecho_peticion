@@ -175,3 +175,59 @@ def is_api_online() -> bool:
         return resp.status_code < 500
     except Exception:
         return False
+
+
+# ---------------------------------------------------------------------------
+# Users / Auth
+# ---------------------------------------------------------------------------
+
+def load_users() -> list[dict[str, Any]]:
+    return _get_repo().get_all_users()
+
+
+def get_user_by_username(username: str) -> dict[str, Any] | None:
+    return _get_repo().get_user_by_username(username)
+
+
+def upsert_user(user: dict[str, Any]) -> None:
+    _get_repo().upsert_user(user)
+
+
+def delete_user(user_id: str) -> None:
+    _get_repo().delete_user(user_id)
+
+
+def login(username: str, password: str) -> dict[str, Any] | None:
+    from src.application.services.auth_service import authenticate
+    from src.domain.exceptions import AuthenticationException
+    try:
+        user = authenticate(_get_repo(), username, password)
+        st.session_state["current_user"] = user
+        return user
+    except AuthenticationException:
+        return None
+
+
+def logout() -> None:
+    st.session_state.pop("current_user", None)
+
+
+def current_user() -> dict[str, Any] | None:
+    return st.session_state.get("current_user")
+
+
+def has_permission(perm_value: str) -> bool:
+    user = current_user()
+    if not user:
+        return False
+    from src.domain.models import User, Permission
+    try:
+        perm = Permission(perm_value)
+        return User(**user).has_permission(perm)
+    except (ValueError, KeyError):
+        return False
+
+
+def ensure_admin_exists() -> None:
+    from src.application.services.auth_service import ensure_default_admin
+    ensure_default_admin(_get_repo())

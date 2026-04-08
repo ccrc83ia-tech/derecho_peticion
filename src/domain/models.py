@@ -40,6 +40,61 @@ class Entity(BaseModel):
     notes: str = ""
 
 
+# --- RBAC ---
+
+class Permission(str, Enum):
+    GENERATE_DOCUMENT = "generate_document"
+    VIEW_TEMPLATES = "view_templates"
+    MANAGE_TEMPLATES = "manage_templates"
+    VIEW_ENTITIES = "view_entities"
+    MANAGE_ENTITIES = "manage_entities"
+    VIEW_COMPANY = "view_company"
+    MANAGE_COMPANY = "manage_company"
+    MANAGE_USERS = "manage_users"
+
+
+class Role(str, Enum):
+    ADMIN = "admin"
+    ABOGADO = "abogado"
+    PASANTE = "pasante"
+    CONSULTA = "consulta"
+
+
+ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
+    Role.ADMIN: set(Permission),
+    Role.ABOGADO: {
+        Permission.GENERATE_DOCUMENT,
+        Permission.VIEW_TEMPLATES,
+        Permission.VIEW_ENTITIES,
+        Permission.MANAGE_ENTITIES,
+        Permission.VIEW_COMPANY,
+    },
+    Role.PASANTE: {
+        Permission.GENERATE_DOCUMENT,
+        Permission.VIEW_TEMPLATES,
+        Permission.VIEW_ENTITIES,
+    },
+    Role.CONSULTA: {
+        Permission.VIEW_TEMPLATES,
+        Permission.VIEW_ENTITIES,
+        Permission.VIEW_COMPANY,
+    },
+}
+
+
+class User(BaseModel):
+    user_id: str
+    username: str
+    full_name: str
+    email: str = ""
+    role: Role = Role.PASANTE
+    active: bool = True
+    password_hash: str = ""
+
+    def has_permission(self, perm: Permission) -> bool:
+        return perm in ROLE_PERMISSIONS.get(self.role, set())
+
+
 # --- Request / Response (aligned to OpenAPI contract) ---
 
 class DocumentGenerationRequest(BaseModel):

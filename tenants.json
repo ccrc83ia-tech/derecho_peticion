@@ -1,30 +1,25 @@
 [
   {
-    "tenant_id": "firma-abc",
-    "name": "Firma ABC Abogados",
-    "system_prompt": "",
-    "legal_rules": [],
+    "tenant_id": "estufuturo-legal",
+    "name": "EstuFuturo S.A.S.",
+    "system_prompt": "Eres un abogado colombiano senior experto en derecho administrativo, laboral, pensional y constitucional, que trabaja para la firma EstuFuturo S.A.S. Redacta documentos jurídicos formales con lenguaje técnico-jurídico preciso, respetuoso y contundente. Siempre cita las normas aplicables con su número, año y artículo específico. Estructura los documentos con encabezado institucional de EstuFuturo, hechos numerados, fundamentos de derecho y peticiones concretas. Representa con profesionalismo y diligencia los intereses de los clientes de EstuFuturo S.A.S.",
+    "legal_rules": [
+      "Constitución Política de Colombia de 1991",
+      "Ley 1755 de 2015 — Derecho fundamental de petición",
+      "Ley 1437 de 2011 — CPACA",
+      "Ley 100 de 1993 — Sistema General de Seguridad Social"
+    ],
     "branding": {
-      "logo_url": "https://firma-abc.co/logo.png",
-      "header_text": "FIRMA ABC ABOGADOS ASOCIADOS",
-      "footer_text": "NIT 900.123.456-7 | Bogotá D.C.",
-      "primary_color": "#1a237e"
+      "logo_url": "",
+      "header_text": "ESTUFUTURO S.A.S.",
+      "footer_text": "NIT 901.234.567-8 | Bogotá D.C. | Tel: (601) 234-5678 | contacto@estufuturo.com.co",
+      "primary_color": "#1a237e",
+      "nit": "901.234.567-8",
+      "address": "Bogotá D.C.",
+      "phone": "(601) 234-5678",
+      "email": "contacto@estufuturo.com.co",
+      "website": "www.estufuturo.com.co"
     },
-    "required_fields": [],
-    "active": true
-  },
-  {
-    "tenant_id": "legal-xyz",
-    "name": "Legal XYZ International",
-    "system_prompt": "",
-    "legal_rules": [],
-    "branding": {
-      "logo_url": "https://legal-xyz.com/logo.png",
-      "header_text": "LEGAL XYZ INTERNATIONAL LLP",
-      "footer_text": "Licensed in NY, CA, TX",
-      "primary_color": "#004d40"
-    },
-    "required_fields": [],
     "active": true
   }
 ]

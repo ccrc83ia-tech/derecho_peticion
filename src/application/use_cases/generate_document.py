@@ -13,9 +13,10 @@ from src.domain.models import (
 )
 from src.domain.ports.in_ports import GenerateDocumentPort
 from src.domain.ports.out_ports import AIServicePort, FileExporterPort, KnowledgeBasePort, TenantRepositoryPort
-from src.infrastructure.logging_config import get_logger
 
-logger = get_logger(__name__)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GenerateDocumentUseCase(GenerateDocumentPort):

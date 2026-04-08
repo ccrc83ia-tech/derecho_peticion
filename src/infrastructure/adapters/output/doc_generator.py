@@ -41,6 +41,87 @@ class DocxEngine(FileExporterPort):
         return buf.getvalue()
 
     @classmethod
+    def build_pdf_bytes(cls, content: str, branding: dict) -> bytes:
+        """Build a branded PDF in memory and return raw bytes."""
+        from fpdf import FPDF
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=20)
+        pdf.add_page()
+        pdf.set_margins(25, 20, 25)
+
+        primary_rgb = cls._parse_color(branding.get("primary_color", "#000000")) or (0, 0, 0)
+
+        # Header
+        header_text = cls._sanitize_for_pdf(branding.get("header_text", "") or "")
+        if header_text:
+            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_text_color(*primary_rgb)
+            pdf.cell(0, 8, header_text, align="C", new_x="LMARGIN", new_y="NEXT")
+
+            contact_parts = [p for p in [
+                branding.get("nit", ""), branding.get("address", ""),
+                branding.get("phone", ""), branding.get("email", ""),
+            ] if p]
+            if contact_parts:
+                pdf.set_font("Helvetica", "", 8)
+                pdf.set_text_color(120, 120, 120)
+                pdf.cell(0, 5, " \u00b7 ".join(contact_parts), align="C", new_x="LMARGIN", new_y="NEXT")
+
+            pdf.set_draw_color(180, 180, 180)
+            pdf.line(25, pdf.get_y() + 3, 185, pdf.get_y() + 3)
+            pdf.ln(8)
+
+        # Body
+        pdf.set_text_color(0, 0, 0)
+        clean = cls._strip_markdown_fences(content)
+        clean = cls._sanitize_for_pdf(clean)
+        for line in clean.split("\n"):
+            stripped = line.strip()
+            if not stripped:
+                pdf.ln(4)
+                continue
+            cls._pdf_add_formatted_line(pdf, stripped)
+
+        # Footer
+        footer_text = cls._sanitize_for_pdf(branding.get("footer_text", "") or "")
+        if footer_text:
+            pdf.ln(6)
+            pdf.set_draw_color(180, 180, 180)
+            pdf.line(25, pdf.get_y(), 185, pdf.get_y())
+            pdf.ln(4)
+            pdf.set_font("Helvetica", "I", 8)
+            pdf.set_text_color(120, 120, 120)
+            pdf.cell(0, 5, footer_text, align="C", new_x="LMARGIN", new_y="NEXT")
+
+        return bytes(pdf.output())
+
+    @staticmethod
+    def _pdf_add_formatted_line(pdf, text: str) -> None:
+        """Parse inline markdown and write to PDF with bold/italic."""
+        import re
+        pattern = re.compile(r"(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*)")
+        last_end = 0
+        for match in pattern.finditer(text):
+            if match.start() > last_end:
+                pdf.set_font("Helvetica", "", 11)
+                pdf.write(6, text[last_end:match.start()])
+            if match.group(2):
+                pdf.set_font("Helvetica", "BI", 11)
+                pdf.write(6, match.group(2))
+            elif match.group(3):
+                pdf.set_font("Helvetica", "B", 11)
+                pdf.write(6, match.group(3))
+            elif match.group(4):
+                pdf.set_font("Helvetica", "I", 11)
+                pdf.write(6, match.group(4))
+            last_end = match.end()
+        if last_end < len(text):
+            pdf.set_font("Helvetica", "", 11)
+            pdf.write(6, text[last_end:])
+        pdf.ln(6)
+
+    @classmethod
     def _build_doc(cls, content: str, branding: dict) -> Document:
         """Core builder shared by export() and build_bytes()."""
         doc = Document()
@@ -104,6 +185,24 @@ class DocxEngine(FileExporterPort):
             fr.font.color.rgb = RGBColor(120, 120, 120)
 
         return doc
+
+    @staticmethod
+    def _sanitize_for_pdf(text: str) -> str:
+        """Replace unicode characters unsupported by Helvetica with ASCII equivalents."""
+        replacements = {
+            "\u2500": "-", "\u2501": "-", "\u2502": "|", "\u2503": "|",
+            "\u2550": "=", "\u2551": "|", "\u254c": "-", "\u254d": "-",
+            "\u2014": "--", "\u2013": "-", "\u2012": "-", "\u2015": "-",
+            "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"',
+            "\u2022": "*", "\u2023": ">", "\u25cf": "*", "\u25cb": "o",
+            "\u2026": "...", "\u00b7": ".", "\u2192": "->", "\u2190": "<-",
+            "\u00ae": "(R)", "\u00a9": "(C)", "\u2122": "(TM)",
+            "\u00b0": " grados", "\u00ba": "o", "\u00aa": "a",
+        }
+        for char, replacement in replacements.items():
+            text = text.replace(char, replacement)
+        # Remove any remaining non-latin1 characters
+        return text.encode("latin-1", errors="replace").decode("latin-1")
 
     @staticmethod
     def _strip_markdown_fences(text: str) -> str:

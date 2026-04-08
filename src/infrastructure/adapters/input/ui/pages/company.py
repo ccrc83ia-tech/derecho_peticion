@@ -16,7 +16,7 @@ from ..constants import (
     MSG_INVALID_COLOR,
     MSG_SAVED,
 )
-from ..state import delete_tenant, load_tenants, upsert_tenant
+from ..state import delete_tenant, has_permission, load_tenants, upsert_tenant
 
 
 def _empty_tenant() -> dict:
@@ -75,12 +75,17 @@ def render() -> None:
     page_header("🏢", "Configuración de Empresa",
                 "Registre los datos de la empresa para generar documentos con membrete profesional.")
 
+    can_manage = has_permission("manage_company")
+
     tenants = load_tenants()
     tenant_map = {t["tenant_id"]: t for t in tenants}
 
     col_action, col_sel = st.columns([1, 2])
     with col_action:
-        action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="co_action")
+        if can_manage:
+            action = segmented(["➕ Crear nueva", "✏️ Editar existente"], key="co_action")
+        else:
+            action = "✏️ Editar existente"
 
     is_edit = action == "✏️ Editar existente"
 
@@ -176,6 +181,9 @@ def render() -> None:
 
     # ── Actions ────────────────────────────────────────────────────────────
     spacer()
+    if not can_manage:
+        return
+
     col_save, col_del = st.columns([3, 1])
 
     with col_save:

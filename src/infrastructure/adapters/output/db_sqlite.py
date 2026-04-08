@@ -12,8 +12,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.domain.models import TenantConfig, Entity
-from src.domain.ports.out_ports import TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort
+from src.domain.models import TenantConfig, Entity, User
+from src.domain.ports.out_ports import TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort, UserRepositoryPort
 from src.infrastructure.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS entities (
     entity_type   TEXT NOT NULL DEFAULT '',
     notes         TEXT NOT NULL DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id       TEXT PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE,
+    full_name     TEXT NOT NULL,
+    email         TEXT NOT NULL DEFAULT '',
+    role          TEXT NOT NULL DEFAULT 'pasante',
+    active        INTEGER NOT NULL DEFAULT 1,
+    password_hash TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -98,7 +108,7 @@ def init_db(db_path: str | Path) -> None:
 # Tenant repository  (implements the domain port)
 # ---------------------------------------------------------------------------
 
-class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort):
+class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort, UserRepositoryPort):
 
     def __init__(self, db_path: str | Path = _DEFAULT_DB) -> None:
         self._db_path = Path(db_path)
@@ -259,6 +269,43 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
         with self._conn() as conn:
             conn.execute("DELETE FROM entities WHERE entity_id = ?", (entity_id,))
 
+    # --- Users CRUD (implements UserRepositoryPort) ---
+
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+        with self._conn() as conn:
+            row = conn.execute(
+                "SELECT * FROM users WHERE username = ?", (username,)
+            ).fetchone()
+        return _row_to_user(row) if row else None
+
+    def get_all_users(self) -> list[dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute("SELECT * FROM users ORDER BY full_name").fetchall()
+        return [_row_to_user(r) for r in rows]
+
+    def upsert_user(self, user: dict[str, Any]) -> None:
+        with self._conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO users (user_id, username, full_name, email, role, active, password_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    username=excluded.username, full_name=excluded.full_name,
+                    email=excluded.email, role=excluded.role,
+                    active=excluded.active, password_hash=excluded.password_hash
+                """,
+                (
+                    user["user_id"], user["username"], user["full_name"],
+                    user.get("email", ""), user.get("role", "pasante"),
+                    1 if user.get("active", True) else 0,
+                    user.get("password_hash", ""),
+                ),
+            )
+
+    def delete_user(self, user_id: str) -> None:
+        with self._conn() as conn:
+            conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+
 
 # ---------------------------------------------------------------------------
 # Row → dict converters
@@ -307,6 +354,18 @@ def _row_to_entity(row: sqlite3.Row) -> dict[str, Any]:
     }
 
 
+def _row_to_user(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "user_id": row["user_id"],
+        "username": row["username"],
+        "full_name": row["full_name"],
+        "email": row["email"],
+        "role": row["role"],
+        "active": bool(row["active"]),
+        "password_hash": row["password_hash"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Migration: JSON → SQLite  (run once)
 # ---------------------------------------------------------------------------
@@ -315,10 +374,11 @@ def migrate_from_json(
     db_path: str | Path,
     tenants_json: str | Path | None = None,
     templates_json: str | Path | None = None,
+    entities_json: str | Path | None = None,
 ) -> dict[str, int]:
     """Import existing JSON files into SQLite. Skips if tables already have data."""
     repo = SQLiteTenantRepository(db_path)
-    counts: dict[str, int] = {"tenants": 0, "templates": 0}
+    counts: dict[str, int] = {"tenants": 0, "templates": 0, "entities": 0}
 
     if tenants_json and Path(tenants_json).exists() and not repo.get_all_tenants():
         with open(tenants_json, "r", encoding="utf-8") as fh:
@@ -333,5 +393,12 @@ def migrate_from_json(
         for t in templates:
             repo.upsert_template(t)
             counts["templates"] += 1
+
+    if entities_json and Path(entities_json).exists() and not repo.get_all():
+        with open(entities_json, "r", encoding="utf-8") as fh:
+            entities = json.load(fh)
+        for e in entities:
+            repo.upsert(e)
+            counts["entities"] += 1
 
     return counts

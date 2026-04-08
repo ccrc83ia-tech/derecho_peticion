@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from src.domain.models import Branding, Entity, LegalContext, TenantConfig
+from src.domain.models import Branding, Entity, LegalContext, TenantConfig, User
 
 
 class AIServicePort(ABC):
@@ -63,6 +63,22 @@ class EntityRepositoryPort(ABC):
 
     @abstractmethod
     def delete(self, entity_id: str) -> None: ...
+
+
+class UserRepositoryPort(ABC):
+    """Contract for user persistence (RBAC)."""
+
+    @abstractmethod
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None: ...
+
+    @abstractmethod
+    def get_all_users(self) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def upsert_user(self, user: dict[str, Any]) -> None: ...
+
+    @abstractmethod
+    def delete_user(self, user_id: str) -> None: ...
 
 
 class FileExporterPort(ABC):

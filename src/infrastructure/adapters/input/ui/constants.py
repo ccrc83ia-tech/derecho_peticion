@@ -56,7 +56,13 @@ FIELD_LABELS: dict[str, str] = {
     "body": "Body",
 }
 
-TEXT_AREA_FIELDS: set[str] = {"hechos_crudos", "body"}
+TEXT_AREA_FIELDS: set[str] = {
+    "hechos_crudos", "body", "hechos", "pretensiones", "fundamentos",
+    "motivos", "argumentos", "descripcion_hechos", "relato_hechos",
+    "descargos", "declaracion_texto", "objeto_conciliacion",
+    "descripcion_solicitud", "conducta_denunciada", "descripcion_queja",
+    "antecedentes", "observaciones",
+}
 TEXT_AREA_HEIGHT: int = 140
 
 # ---------------------------------------------------------------------------
@@ -133,6 +139,19 @@ ENTITY_TYPES: list[str] = [
 DOCX_MIME: str = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
+PDF_MIME: str = "application/pdf"
+
+# ---------------------------------------------------------------------------
+# RBAC
+# ---------------------------------------------------------------------------
+ROLE_LABELS: dict[str, str] = {
+    "admin": "Administrador",
+    "abogado": "Abogado",
+    "pasante": "Pasante",
+    "consulta": "Solo consulta",
+}
+
+PAGE_USERS: str = "Usuarios"
 
 # ---------------------------------------------------------------------------
 # RAG / Knowledge Base

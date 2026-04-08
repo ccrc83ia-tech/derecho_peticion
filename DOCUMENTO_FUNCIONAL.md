@@ -232,10 +232,13 @@ El sistema es genérico — soporta cualquier tipo de documento jurídico median
 | RAG con base de conocimiento legal | ✅ Implementado |
 | Editor de documentos post-generación | ✅ Implementado |
 | Exportación DOCX con formato | ✅ Implementado |
+| Exportación PDF con membrete | ✅ Implementado |
 | API REST para integración | ✅ Implementado |
 | Logging y trazabilidad | ✅ Implementado |
-| Exportación PDF | 🔜 Próximamente |
-| Autenticación de usuarios | 🔜 Próximamente |
+| Autenticación de usuarios (RBAC) | ✅ Implementado |
+| Entidades destinatarias (27 tipos) | ✅ Implementado |
+| Seguridad (CORS, rate limiting, headers) | ✅ Implementado |
 | Historial de documentos generados | 🔜 Próximamente |
+| Tests unitarios e integración | 🔜 Próximamente |
 | Firma digital integrada | 🔜 Próximamente |
 | Despliegue en AWS (ECS/Lambda) | 🔜 Próximamente |

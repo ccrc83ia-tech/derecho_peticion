@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 from src.application.use_cases.generate_document import GenerateDocumentUseCase
 from src.domain.ports.in_ports import GenerateDocumentPort
 from src.infrastructure.adapters.output.ai_gemini import GeminiAdapter
@@ -14,7 +12,6 @@ from src.infrastructure.logging_config import get_logger
 logger = get_logger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_PROJECT_ROOT / ".env")
 
 
 class Container:
@@ -41,7 +38,7 @@ class Container:
         self._knowledge_base = ChromaKnowledgeBase(
             persist_dir=chroma_dir,
             api_key=gemini_key,
-            chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "800")),
+            chunk_size=int(os.getenv("RAG_CHUNK_SIZE", "1500")),
             chunk_overlap=int(os.getenv("RAG_CHUNK_OVERLAP", "200")),
         ) if gemini_key else None
         logger.info("Knowledge base: %s", "ENABLED" if self._knowledge_base else "DISABLED (no API key)")
@@ -51,6 +48,7 @@ class Container:
             db_path=db_path,
             tenants_json=os.getenv("TENANT_DATASOURCE", "tenants.json"),
             templates_json=os.getenv("TEMPLATES_DATASOURCE", "templates.json"),
+            entities_json=os.getenv("ENTITIES_DATASOURCE", "entities.json"),
         )
 
         # Use cases (wired via constructor injection)
