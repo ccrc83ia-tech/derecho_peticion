@@ -1,16 +1,14 @@
-"""ChromaDB-backed knowledge base with Gemini embeddings for RAG.
-
-Each template gets its own ChromaDB collection so searches are scoped
-to the documents relevant to that document type.
-"""
+"""ChromaDB knowledge base with Gemini embeddings + LRU cache for search queries."""
 
 from __future__ import annotations
 
 import hashlib
 import re
 from pathlib import Path
+from threading import Lock
 
 import chromadb
+from cachetools import LRUCache
 from google import genai
 
 from src.domain.ports.out_ports import KnowledgeBasePort
@@ -20,20 +18,32 @@ logger = get_logger(__name__)
 
 _COLLECTION_PREFIX = "tpl_"
 
+# Module-level embedding cache — no reference to any instance, no memory leak
+_embed_cache: LRUCache = LRUCache(maxsize=256)
+_embed_cache_lock = Lock()
+
+
+def _cached_embed(client: genai.Client, model: str, text: str) -> list[float]:
+    """Embed a single text with module-level LRU cache."""
+    key = (model, text)
+    with _embed_cache_lock:
+        if key in _embed_cache:
+            return _embed_cache[key]
+    result = client.models.embed_content(model=model, contents=[text])
+    embedding = list(result.embeddings[0].values)
+    with _embed_cache_lock:
+        _embed_cache[key] = embedding
+    return embedding
+
 
 class _GeminiEmbeddingFunction(chromadb.EmbeddingFunction):
-    """Wraps Google Gemini embedding API for ChromaDB."""
 
     def __init__(self, api_key: str, model: str = "gemini-embedding-001") -> None:
         self._client = genai.Client(api_key=api_key)
         self._model = model
 
     def __call__(self, input: list[str]) -> list[list[float]]:
-        # Batch: send all texts at once to reduce API calls
-        resp = self._client.models.embed_content(
-            model=self._model, contents=input,
-        )
-        return [e.values for e in resp.embeddings]
+        return [_cached_embed(self._client, self._model, text) for text in input]
 
 
 class ChromaKnowledgeBase(KnowledgeBasePort):
@@ -51,41 +61,38 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
         self._embed_fn = _GeminiEmbeddingFunction(api_key=api_key)
         self._chunk_size = chunk_size
         self._chunk_overlap = chunk_overlap
+        self._collection_cache: dict[str, chromadb.Collection] = {}
         logger.info("ChromaKnowledgeBase ready — %s", self._persist_dir)
 
     def _collection(self, template_id: str) -> chromadb.Collection:
         name = f"{_COLLECTION_PREFIX}{_safe_name(template_id)}"
-        return self._client.get_or_create_collection(
-            name=name, embedding_function=self._embed_fn,
-        )
+        if name not in self._collection_cache:
+            self._collection_cache[name] = self._client.get_or_create_collection(
+                name=name, embedding_function=self._embed_fn,
+            )
+        return self._collection_cache[name]
 
-    # -- Port methods -------------------------------------------------------
+    def _invalidate_collection_cache(self, template_id: str) -> None:
+        name = f"{_COLLECTION_PREFIX}{_safe_name(template_id)}"
+        self._collection_cache.pop(name, None)
 
     def ingest(self, template_id: str, doc_name: str, text: str) -> int:
         chunks = _split_text(text, self._chunk_size, self._chunk_overlap)
         if not chunks:
             return 0
-
         col = self._collection(template_id)
         ids = [
             f"{doc_name}_{hashlib.md5(c.encode()).hexdigest()[:10]}_{i}"
             for i, c in enumerate(chunks)
         ]
         metadatas = [{"source": doc_name, "chunk_index": i} for i in range(len(chunks))]
-
-        # Batch in groups of 100 to avoid API limits
-        batch_size = 100
-        for start in range(0, len(chunks), batch_size):
-            end = start + batch_size
+        for start in range(0, len(chunks), 100):
             col.upsert(
-                ids=ids[start:end],
-                documents=chunks[start:end],
-                metadatas=metadatas[start:end],
+                ids=ids[start:start + 100],
+                documents=chunks[start:start + 100],
+                metadatas=metadatas[start:start + 100],
             )
-        logger.info(
-            "Ingested %d chunks from '%s' into template '%s'",
-            len(chunks), doc_name, template_id,
-        )
+        logger.info("Ingested %d chunks from '%s' into template '%s'", len(chunks), doc_name, template_id)
         return len(chunks)
 
     def search(self, template_id: str, query: str, n_results: int = 5) -> list[str]:
@@ -94,11 +101,15 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
             return []
         results = col.query(query_texts=[query], n_results=min(n_results, col.count()))
         docs = results.get("documents", [[]])[0]
-        logger.debug("RAG search for '%s' returned %d chunks", template_id, len(docs))
+        logger.debug(
+            "RAG search '%s' → %d chunks | embed_cache_size=%d",
+            template_id, len(docs), len(_embed_cache),
+        )
         return docs
 
     def delete_collection(self, template_id: str) -> None:
         name = f"{_COLLECTION_PREFIX}{_safe_name(template_id)}"
+        self._invalidate_collection_cache(template_id)
         try:
             self._client.delete_collection(name)
             logger.info("Deleted collection '%s'", name)
@@ -106,7 +117,6 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
             pass
 
     def list_documents(self, template_id: str) -> list[str]:
-        """Return unique source document names in a template's collection."""
         col = self._collection(template_id)
         if col.count() == 0:
             return []
@@ -115,7 +125,6 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
         return sorted(sources - {""})
 
     def delete_document(self, template_id: str, doc_name: str) -> None:
-        """Remove all chunks belonging to a specific source document."""
         col = self._collection(template_id)
         all_data = col.get(include=["metadatas"])
         ids_to_delete = [
@@ -127,31 +136,21 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
             logger.info("Deleted %d chunks of '%s' from '%s'", len(ids_to_delete), doc_name, template_id)
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 def _safe_name(template_id: str) -> str:
-    """Sanitize template_id for ChromaDB collection name (3-63 chars, alphanum/underscore)."""
     clean = re.sub(r"[^a-zA-Z0-9_]", "_", template_id)[:50]
     return clean if len(clean) >= 3 else clean + "_col"
 
 
 def _split_text(text: str, chunk_size: int, overlap: int) -> list[str]:
-    """Split text into overlapping chunks by character count, respecting paragraph boundaries."""
     paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
     chunks: list[str] = []
     current = ""
-
     for para in paragraphs:
         if len(current) + len(para) + 1 > chunk_size and current:
             chunks.append(current)
-            # Keep overlap from end of current chunk
             current = current[-overlap:] + "\n" + para if overlap else para
         else:
             current = f"{current}\n{para}" if current else para
-
     if current.strip():
         chunks.append(current)
-
     return chunks

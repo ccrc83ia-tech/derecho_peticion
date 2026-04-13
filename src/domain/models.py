@@ -90,8 +90,11 @@ class User(BaseModel):
     role: Role = Role.PASANTE
     active: bool = True
     password_hash: str = ""
+    permissions: list[str] | None = None
 
     def has_permission(self, perm: Permission) -> bool:
+        if self.permissions is not None:
+            return perm.value in self.permissions
         return perm in ROLE_PERMISSIONS.get(self.role, set())
 
 

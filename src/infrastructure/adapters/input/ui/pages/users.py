@@ -11,6 +11,31 @@ from ..components import page_header, section_title, segmented, spacer
 from ..constants import ROLE_LABELS
 from ..state import delete_user, has_permission, load_users, upsert_user
 from src.application.services.auth_service import hash_password
+from src.domain.models import Role as RoleEnum, ROLE_PERMISSIONS
+
+ALL_PERMS = [
+    "generate_document", "view_templates", "manage_templates",
+    "view_entities", "manage_entities", "view_company",
+    "manage_company", "manage_users",
+]
+
+PERM_LABELS = {
+    "generate_document": "📄 Generar documentos",
+    "view_templates": "📋 Ver plantillas",
+    "manage_templates": "📋 Gestionar plantillas",
+    "view_entities": "🏛️ Ver entidades",
+    "manage_entities": "🏛️ Gestionar entidades",
+    "view_company": "🏢 Ver empresa",
+    "manage_company": "🏢 Gestionar empresa",
+    "manage_users": "👥 Gestionar usuarios",
+}
+
+
+def _default_perms_for_role(role_str: str) -> set[str]:
+    try:
+        return {p.value for p in ROLE_PERMISSIONS.get(RoleEnum(role_str), set())}
+    except ValueError:
+        return set()
 
 
 def render() -> None:
@@ -56,12 +81,27 @@ def render() -> None:
             "role": "pasante", "active": True, "password_hash": "",
         }
 
-    # Detectar cambio de usuario seleccionado para limpiar campos
-    prev_sel = st.session_state.get("_usr_prev_sel")
-    if prev_sel != sel_id:
-        st.session_state["_usr_prev_sel"] = sel_id
+    # Inicializar widgets solo si aún no existen para este usuario
+    _init_key = f"_usr_init_{sel_id}"
+    if not st.session_state.get(_init_key):
+        st.session_state[_init_key] = True
         for k in ["_usr_new_pass", "_usr_confirm_pass"]:
             st.session_state.pop(k, None)
+        st.session_state[f"usr_username_{sel_id}"] = user.get("username", "")
+        st.session_state[f"usr_fullname_{sel_id}"] = user.get("full_name", "")
+        st.session_state[f"usr_email_{sel_id}"] = user.get("email", "")
+        role_keys = list(ROLE_LABELS.keys())
+        current_role = user.get("role", "pasante")
+        st.session_state[f"usr_role_{sel_id}"] = current_role if current_role in role_keys else "pasante"
+        st.session_state[f"usr_active_{sel_id}"] = user.get("active", True)
+        # Permisos: custom guardados o defaults del rol
+        saved_perms = user.get("permissions")
+        if saved_perms is not None:
+            perm_set = set(saved_perms)
+        else:
+            perm_set = _default_perms_for_role(current_role)
+        for p in ALL_PERMS:
+            st.session_state[f"usr_perm_{p}_{sel_id}"] = p in perm_set
 
     user_id = user["user_id"]
 
@@ -73,13 +113,11 @@ def render() -> None:
         with col_user:
             username = st.text_input(
                 "Nombre de usuario *",
-                value=user.get("username", ""),
                 key=f"usr_username_{sel_id}",
             )
         with col_name:
             full_name = st.text_input(
                 "Nombre completo *",
-                value=user.get("full_name", ""),
                 key=f"usr_fullname_{sel_id}",
             )
 
@@ -87,22 +125,18 @@ def render() -> None:
         with col_email:
             email = st.text_input(
                 "Email",
-                value=user.get("email", ""),
                 key=f"usr_email_{sel_id}",
             )
         with col_role:
             role_keys = list(ROLE_LABELS.keys())
-            current_role = user.get("role", "pasante")
-            role_idx = role_keys.index(current_role) if current_role in role_keys else 3
             role = st.selectbox(
-                "Rol", options=role_keys, index=role_idx,
+                "Rol", options=role_keys,
                 format_func=lambda r: ROLE_LABELS.get(r, r),
                 key=f"usr_role_{sel_id}",
             )
 
         active = st.checkbox(
             "Usuario activo",
-            value=user.get("active", True),
             key=f"usr_active_{sel_id}",
         )
 
@@ -111,27 +145,18 @@ def render() -> None:
         new_password = st.text_input("Nueva contraseña", type="password", key="_usr_new_pass")
         confirm_password = st.text_input("Confirmar contraseña", type="password", key="_usr_confirm_pass")
 
-        # Permission preview
-        section_title("Permisos del rol")
-        from src.domain.models import Role as RoleEnum, ROLE_PERMISSIONS
-        try:
-            role_enum = RoleEnum(role)
-            perms = ROLE_PERMISSIONS.get(role_enum, set())
-            perm_labels = {
-                "generate_document": "📄 Generar documentos",
-                "view_templates": "📋 Ver plantillas",
-                "manage_templates": "📋 Gestionar plantillas",
-                "view_entities": "🏛️ Ver entidades",
-                "manage_entities": "🏛️ Gestionar entidades",
-                "view_company": "🏢 Ver empresa",
-                "manage_company": "🏢 Gestionar empresa",
-                "manage_users": "👥 Gestionar usuarios",
-            }
-            for p in perm_labels:
-                icon = "✅" if any(pp.value == p for pp in perms) else "❌"
-                st.caption(f"{icon} {perm_labels[p]}")
-        except ValueError:
-            pass
+        # Editable permission checkboxes
+        section_title("Permisos del usuario")
+        st.caption("Marque o desmarque para personalizar los permisos de este usuario.")
+        for p, label in PERM_LABELS.items():
+            st.checkbox(label, key=f"usr_perm_{p}_{sel_id}")
+
+        # Botón para resetear permisos al default del rol
+        if st.button("🔄 Restaurar permisos por defecto del rol", key=f"usr_reset_perms_{sel_id}"):
+            defaults = _default_perms_for_role(role)
+            for p in ALL_PERMS:
+                st.session_state[f"usr_perm_{p}_{sel_id}"] = p in defaults
+            st.rerun()
 
     # ── Actions ────────────────────────────────────────────────────────────
     spacer()
@@ -158,6 +183,12 @@ def render() -> None:
                 sac.alert(label="Error", description="Debe establecer una contraseña para el nuevo usuario.", color="error", icon=True)
                 return
 
+            # Recoger permisos seleccionados
+            selected_perms = [
+                p for p in ALL_PERMS
+                if st.session_state.get(f"usr_perm_{p}_{sel_id}", False)
+            ]
+
             upsert_user({
                 "user_id": user_id,
                 "username": username.strip(),
@@ -166,9 +197,13 @@ def render() -> None:
                 "role": role,
                 "active": active,
                 "password_hash": pw_hash,
+                "permissions": selected_perms,
             })
             sac.alert(label="Guardado", description="Usuario guardado correctamente.", color="success", icon=True)
-            st.session_state["_usr_prev_sel"] = None
+            # Limpiar flags de inicialización para recargar datos frescos
+            for k in list(st.session_state.keys()):
+                if k.startswith("_usr_init_"):
+                    del st.session_state[k]
             st.rerun()
 
     with col_del:
@@ -186,7 +221,9 @@ def render() -> None:
         if c1.button("Sí, eliminar", key="usr_yes"):
             delete_user(user_id)
             st.session_state["_usr_confirm_delete"] = False
-            st.session_state["_usr_prev_sel"] = None
+            for k in list(st.session_state.keys()):
+                if k.startswith("_usr_init_"):
+                    del st.session_state[k]
             st.rerun()
         if c2.button("Cancelar", key="usr_no"):
             st.session_state["_usr_confirm_delete"] = False

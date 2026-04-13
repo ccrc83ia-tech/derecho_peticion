@@ -31,6 +31,7 @@ from src.infrastructure.adapters.input.ui.pages import (
 from src.infrastructure.adapters.input.ui.state import (
     current_user, ensure_admin_exists, is_api_online, load_tenants, logout,
 )
+from src.infrastructure.adapters.input.ui.session import restore_session, _get_manager
 from src.domain.models import ROLE_PERMISSIONS, Role, Permission
 
 
@@ -47,10 +48,13 @@ brand_name = _get_brand_name()
 st.set_page_config(page_title=brand_name, page_icon=APP_ICON, layout="wide")
 inject_css()
 
+# Inicializar CookieManager UNA sola vez al inicio del ciclo de render
+_get_manager()
+
 # ---------------------------------------------------------------------------
-# Login gate
+# Login gate — restore from cookie first, then check session_state
 # ---------------------------------------------------------------------------
-user = current_user()
+user = restore_session() or current_user()
 if not user:
     login.render()
     st.stop()

@@ -200,15 +200,19 @@ def delete_user(user_id: str) -> None:
 def login(username: str, password: str) -> dict[str, Any] | None:
     from src.application.services.auth_service import authenticate
     from src.domain.exceptions import AuthenticationException
+    from src.infrastructure.adapters.input.ui.session import save_session
     try:
         user = authenticate(_get_repo(), username, password)
         st.session_state["current_user"] = user
+        save_session(user)
         return user
     except AuthenticationException:
         return None
 
 
 def logout() -> None:
+    from src.infrastructure.adapters.input.ui.session import clear_session
+    clear_session()
     st.session_state.pop("current_user", None)
 
 
@@ -223,7 +227,8 @@ def has_permission(perm_value: str) -> bool:
     from src.domain.models import User, Permission
     try:
         perm = Permission(perm_value)
-        return User(**user).has_permission(perm)
+        user_data = {k: v for k, v in user.items() if k in User.model_fields}
+        return User(**user_data).has_permission(perm)
     except (ValueError, KeyError):
         return False
 

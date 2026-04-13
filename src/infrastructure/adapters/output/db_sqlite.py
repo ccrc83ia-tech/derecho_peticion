@@ -12,13 +12,16 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from src.domain.models import TenantConfig, Entity, User
+from cachetools import TTLCache
+
+from src.domain.models import TenantConfig
 from src.domain.ports.out_ports import TenantRepositoryPort, TemplateRepositoryPort, EntityRepositoryPort, UserRepositoryPort
 from src.infrastructure.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 _DEFAULT_DB = "legal_engine.db"
+_TEMPLATE_CACHE_TTL = 30  # seconds
 
 
 # ---------------------------------------------------------------------------
@@ -26,6 +29,20 @@ _DEFAULT_DB = "legal_engine.db"
 # ---------------------------------------------------------------------------
 
 _SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS template_versions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id   TEXT NOT NULL,
+    version       INTEGER NOT NULL DEFAULT 1,
+    name          TEXT NOT NULL,
+    description   TEXT NOT NULL DEFAULT '',
+    fields        TEXT NOT NULL DEFAULT '[]',
+    system_prompt TEXT NOT NULL DEFAULT '',
+    legal_rules   TEXT NOT NULL DEFAULT '[]',
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    created_by    TEXT NOT NULL DEFAULT 'system',
+    UNIQUE(template_id, version)
+);
+
 CREATE TABLE IF NOT EXISTS tenants (
     tenant_id     TEXT PRIMARY KEY,
     name          TEXT NOT NULL,
@@ -75,7 +92,8 @@ CREATE TABLE IF NOT EXISTS users (
     email         TEXT NOT NULL DEFAULT '',
     role          TEXT NOT NULL DEFAULT 'pasante',
     active        INTEGER NOT NULL DEFAULT 1,
-    password_hash TEXT NOT NULL DEFAULT ''
+    password_hash TEXT NOT NULL DEFAULT '',
+    permissions   TEXT DEFAULT NULL
 );
 """
 
@@ -102,6 +120,9 @@ def init_db(db_path: str | Path) -> None:
             conn.execute("ALTER TABLE templates ADD COLUMN system_prompt TEXT NOT NULL DEFAULT ''")
         if "legal_rules" not in cols:
             conn.execute("ALTER TABLE templates ADD COLUMN legal_rules TEXT NOT NULL DEFAULT '[]'")
+        user_cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "permissions" not in user_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT NULL")
 
 
 # ---------------------------------------------------------------------------
@@ -113,6 +134,8 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
     def __init__(self, db_path: str | Path = _DEFAULT_DB) -> None:
         self._db_path = Path(db_path)
         init_db(self._db_path)
+        # TTL cache: invalidated on write, expires after 30s automatically
+        self._template_cache: TTLCache = TTLCache(maxsize=1, ttl=_TEMPLATE_CACHE_TTL)
         logger.info("SQLiteTenantRepository ready — %s", self._db_path)
 
     def _conn(self) -> sqlite3.Connection:
@@ -171,11 +194,18 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
     # --- Templates CRUD ---
 
     def get_all_templates(self) -> list[dict[str, Any]]:
+        if "all" in self._template_cache:
+            return self._template_cache["all"]
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM templates ORDER BY name").fetchall()
-        return [_row_to_template(r) for r in rows]
+        result = [_row_to_template(r) for r in rows]
+        self._template_cache["all"] = result
+        return result
 
-    def upsert_template(self, template: dict[str, Any]) -> None:
+    def _invalidate_template_cache(self) -> None:
+        self._template_cache.clear()
+
+    def upsert_template(self, template: dict[str, Any], created_by: str = "system") -> None:
         with self._conn() as conn:
             conn.execute(
                 """
@@ -197,11 +227,53 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
                     json.dumps(template.get("legal_rules", []), ensure_ascii=False),
                 ),
             )
+            # Snapshot version — immutable audit trail
+            row = conn.execute(
+                "SELECT COALESCE(MAX(version), 0) FROM template_versions WHERE template_id = ?",
+                (template["template_id"],),
+            ).fetchone()
+            next_version = (row[0] or 0) + 1
+            conn.execute(
+                """
+                INSERT INTO template_versions
+                    (template_id, version, name, description, fields, system_prompt, legal_rules, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    template["template_id"], next_version,
+                    template["name"], template.get("description", ""),
+                    json.dumps(template.get("fields", []), ensure_ascii=False),
+                    template.get("system_prompt", ""),
+                    json.dumps(template.get("legal_rules", []), ensure_ascii=False),
+                    created_by,
+                ),
+            )
+        self._invalidate_template_cache()
+
+    def get_template_versions(self, template_id: str) -> list[dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT * FROM template_versions WHERE template_id = ? ORDER BY version DESC",
+                (template_id,),
+            ).fetchall()
+        return [
+            {
+                "version": r["version"], "name": r["name"],
+                "description": r["description"],
+                "fields": json.loads(r["fields"]),
+                "system_prompt": r["system_prompt"],
+                "legal_rules": json.loads(r["legal_rules"]),
+                "created_at": r["created_at"], "created_by": r["created_by"],
+            }
+            for r in rows
+        ]
 
     def delete_template(self, template_id: str) -> None:
         with self._conn() as conn:
-            conn.execute("DELETE FROM templates WHERE template_id = ?", (template_id,))
+            conn.execute("DELETE FROM template_versions WHERE template_id = ?", (template_id,))
             conn.execute("DELETE FROM template_documents WHERE template_id = ?", (template_id,))
+            conn.execute("DELETE FROM templates WHERE template_id = ?", (template_id,))
+        self._invalidate_template_cache()
 
     # --- Template documents CRUD ---
 
@@ -284,21 +356,25 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
         return [_row_to_user(r) for r in rows]
 
     def upsert_user(self, user: dict[str, Any]) -> None:
+        perms = user.get("permissions")
+        perms_json = json.dumps(perms, ensure_ascii=False) if perms is not None else None
         with self._conn() as conn:
             conn.execute(
                 """
-                INSERT INTO users (user_id, username, full_name, email, role, active, password_hash)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (user_id, username, full_name, email, role, active, password_hash, permissions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                     username=excluded.username, full_name=excluded.full_name,
                     email=excluded.email, role=excluded.role,
-                    active=excluded.active, password_hash=excluded.password_hash
+                    active=excluded.active, password_hash=excluded.password_hash,
+                    permissions=excluded.permissions
                 """,
                 (
                     user["user_id"], user["username"], user["full_name"],
                     user.get("email", ""), user.get("role", "pasante"),
                     1 if user.get("active", True) else 0,
                     user.get("password_hash", ""),
+                    perms_json,
                 ),
             )
 
@@ -355,6 +431,7 @@ def _row_to_entity(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def _row_to_user(row: sqlite3.Row) -> dict[str, Any]:
+    perms_raw = row["permissions"] if "permissions" in row.keys() else None
     return {
         "user_id": row["user_id"],
         "username": row["username"],
@@ -363,6 +440,7 @@ def _row_to_user(row: sqlite3.Row) -> dict[str, Any]:
         "role": row["role"],
         "active": bool(row["active"]),
         "password_hash": row["password_hash"],
+        "permissions": json.loads(perms_raw) if perms_raw else None,
     }
 
 

@@ -1,13 +1,17 @@
-"""Document ingestion service — extracts text from files and stores in knowledge base."""
+"""Document ingestion service — text extraction + size validation before RAG indexing."""
 
 from __future__ import annotations
+
+import os
 
 from src.domain.ports.out_ports import KnowledgeBasePort
 from src.infrastructure.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-# Supported file types and their extractors
+_MAX_FILE_MB = float(os.getenv("RAG_MAX_FILE_MB", "20"))
+_MAX_FILE_BYTES = int(_MAX_FILE_MB * 1024 * 1024)
+
 _EXTRACTORS: dict[str, str] = {
     "application/pdf": "pdf",
     "text/plain": "txt",
@@ -17,15 +21,19 @@ _EXTRACTORS: dict[str, str] = {
 SUPPORTED_EXTENSIONS = (".pdf", ".txt", ".docx")
 
 
-def extract_text(file_bytes: bytes, file_type: str) -> str:
-    """Extract plain text from uploaded file bytes."""
-    ext = _EXTRACTORS.get(file_type, file_type)
+class FileTooLargeError(ValueError):
+    def __init__(self, size_mb: float, max_mb: float) -> None:
+        super().__init__(f"Archivo demasiado grande: {size_mb:.1f} MB (máximo {max_mb:.0f} MB)")
+        self.size_mb = size_mb
+        self.max_mb = max_mb
 
+
+def extract_text(file_bytes: bytes, file_type: str) -> str:
+    ext = _EXTRACTORS.get(file_type, file_type)
     if ext == "pdf":
         return _extract_pdf(file_bytes)
     if ext == "docx":
         return _extract_docx(file_bytes)
-    # Default: treat as plain text
     return file_bytes.decode("utf-8", errors="replace")
 
 
@@ -36,19 +44,30 @@ def ingest_file(
     file_bytes: bytes,
     file_type: str,
 ) -> int:
-    """Extract text from file and ingest into knowledge base. Returns chunk count."""
+    size_bytes = len(file_bytes)
+    if size_bytes > _MAX_FILE_BYTES:
+        size_mb = size_bytes / (1024 * 1024)
+        logger.warning(
+            "File '%s' rejected — %.1f MB exceeds limit of %.0f MB",
+            doc_name, size_mb, _MAX_FILE_MB,
+        )
+        raise FileTooLargeError(size_mb, _MAX_FILE_MB)
+
     text = extract_text(file_bytes, file_type)
     if not text.strip():
         logger.warning("Empty text extracted from '%s'", doc_name)
         return 0
-    logger.info("Extracted %d chars from '%s' for template '%s'", len(text), doc_name, template_id)
+
+    logger.info(
+        "Extracted %d chars from '%s' (%.2f MB) for template '%s'",
+        len(text), doc_name, size_bytes / (1024 * 1024), template_id,
+    )
     return kb.ingest(template_id, doc_name, text)
 
 
 def _extract_pdf(file_bytes: bytes) -> str:
     import io
     from pypdf import PdfReader
-
     reader = PdfReader(io.BytesIO(file_bytes))
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
@@ -56,6 +75,5 @@ def _extract_pdf(file_bytes: bytes) -> str:
 def _extract_docx(file_bytes: bytes) -> str:
     import io
     from docx import Document
-
     doc = Document(io.BytesIO(file_bytes))
     return "\n".join(p.text for p in doc.paragraphs)

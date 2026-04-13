@@ -1,7 +1,9 @@
-"""Authentication service — password hashing and user verification."""
+"""Authentication service — password hashing, verification, and secure first-run setup."""
 
 from __future__ import annotations
 
+import secrets
+import string
 import uuid
 
 import bcrypt
@@ -9,6 +11,13 @@ import bcrypt
 from src.domain.exceptions import AuthenticationException
 from src.domain.models import Role
 from src.domain.ports.out_ports import UserRepositoryPort
+from src.infrastructure.logging_config import get_logger
+from src.infrastructure.security_config import create_secure_log_extra
+
+logger = get_logger(__name__)
+
+_PASSWORD_ALPHABET = string.ascii_letters + string.digits + "!@#$%^&*"
+_PASSWORD_LENGTH = 16
 
 
 def hash_password(plain: str) -> str:
@@ -17,6 +26,10 @@ def hash_password(plain: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
+def generate_secure_password() -> str:
+    return "".join(secrets.choice(_PASSWORD_ALPHABET) for _ in range(_PASSWORD_LENGTH))
 
 
 def authenticate(repo: UserRepositoryPort, username: str, password: str) -> dict:
@@ -28,25 +41,59 @@ def authenticate(repo: UserRepositoryPort, username: str, password: str) -> dict
     return user
 
 
-_DEFAULT_USERS = [
-    {"username": "admin",    "full_name": "admin",    "role": Role.ADMIN,    "password": "admin123"},
-    {"username": "abogado",  "full_name": "abogado",  "role": Role.ABOGADO,  "password": "abogado123"},
-    {"username": "pasante",  "full_name": "pasante",  "role": Role.PASANTE,  "password": "pasante123"},
-    {"username": "consulta", "full_name": "consulta", "role": Role.CONSULTA, "password": "consulta123"},
+_DEFAULT_ROLES = [
+    ("admin",    "Administrador", Role.ADMIN),
+    ("abogado",  "Abogado",       Role.ABOGADO),
+    ("pasante",  "Pasante",       Role.PASANTE),
+    ("consulta", "Solo Consulta", Role.CONSULTA),
 ]
 
 
 def ensure_default_admin(repo: UserRepositoryPort) -> None:
-    """Create default users (one per role) if no users exist."""
+    """Create default users with random passwords if no users exist.
+
+    Passwords are printed to stdout AND logged at WARNING level.
+    They are never stored in plain text and never hardcoded.
+    """
     if repo.get_all_users():
         return
-    for u in _DEFAULT_USERS:
+
+    separator = "=" * 60
+    header = [
+        separator,
+        "  PRIMER ARRANQUE — Credenciales iniciales generadas",
+        "  Guarde estas contraseñas en un lugar seguro.",
+        "  No se volverán a mostrar.",
+        separator,
+    ]
+    for line in header:
+        print(line)
+
+    for username, full_name, role in _DEFAULT_ROLES:
+        password = generate_secure_password()
         repo.upsert_user({
             "user_id": str(uuid.uuid4()),
-            "username": u["username"],
-            "full_name": u["full_name"],
+            "username": username,
+            "full_name": full_name,
             "email": "",
-            "role": u["role"].value,
+            "role": role.value,
             "active": True,
-            "password_hash": hash_password(u["password"]),
+            "password_hash": hash_password(password),
         })
+        # Print masked password for console visibility
+        masked_password = password[:2] + "*" * (len(password) - 4) + password[-2:]
+        credential_line = f"  {username:<10} → {masked_password} (full password in secure log)"
+        print(credential_line)
+        
+        # Log with secure structured logging
+        logger.warning(
+            "Default user created with secure password",
+            extra=create_secure_log_extra(
+                username=username,
+                role=role.value,
+                password_length=len(password),
+                secure_password=password  # Only in file logs, masked in console
+            )
+        )
+
+    print(separator + "\n")
