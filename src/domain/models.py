@@ -126,4 +126,4 @@ class LegalContext(BaseModel):
     user_prompt: str
     metadata: dict[str, str] = Field(default_factory=dict)
     temperature: float = 0.3
-    max_output_tokens: int = 4096
+    max_output_tokens: int | None = None

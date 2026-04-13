@@ -109,3 +109,8 @@ class KnowledgeBasePort(ABC):
     def delete_collection(self, template_id: str) -> None:
         """Remove all chunks for a template."""
         ...
+
+    @abstractmethod
+    def has_documents(self, template_id: str) -> bool:
+        """Return True if there is at least one indexed chunk for this template."""
+        ...

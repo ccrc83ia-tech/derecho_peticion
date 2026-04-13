@@ -97,21 +97,52 @@ class GenerateDocumentUseCase(GenerateDocumentPort):
         )
 
         # RAG: retrieve relevant legal context from knowledge base
+        rag_strict = request.metadata.get("_rag_strict", "1") == "1"
         rag_context = ""
-        if knowledge_base:
+        has_indexed_docs = knowledge_base is not None and knowledge_base.has_documents(request.template_id)
+
+        if has_indexed_docs:
             clean_metadata = {k: v for k, v in request.metadata.items() if not k.startswith("_")}
-            query = f"{request.template_id} {' '.join(rules)} {' '.join(clean_metadata.values())}"
-            chunks = knowledge_base.search(request.template_id, query, n_results=5)
+            query_parts = [request.template_id] + list(rules)
+            for v in clean_metadata.values():
+                if v and len(v) > 20:
+                    query_parts.append(v)
+            chunks = knowledge_base.search(request.template_id, " ".join(query_parts), n_results=10)
             if chunks:
-                rag_context = "\n\n".join(chunks)
+                rag_context = "\n\n---\n\n".join(chunks)
                 logger.info("RAG: injected %d chunks (%d chars)", len(chunks), len(rag_context))
 
-        if rag_context:
-            system_prompt += (
-                "\n\nTexto literal de las normas aplicables (usa estas fuentes como referencia exacta, "
-                "cita textualmente cuando sea pertinente):\n\n"
-                f"{rag_context}"
-            )
+        if rag_strict:
+            if rag_context:
+                system_prompt += (
+                    "\n\n=== FUENTES NORMATIVAS AUTORIZADAS ===\n"
+                    "INSTRUCCIÓN ABSOLUTA: El documento SOLO puede contener citas, artículos, "
+                    "decretos, leyes y jurisprudencia que aparezcan TEXTUALMENTE en los fragmentos "
+                    "de abajo. Queda PROHIBIDO usar conocimiento propio, inventar contenido normativo "
+                    "o citar cualquier norma que no esté en estas fuentes. Si un argumento no tiene "
+                    "respaldo en los fragmentos, NO lo incluyas.\n\n"
+                    f"{rag_context}\n"
+                    "=== FIN DE FUENTES AUTORIZADAS ==="
+                )
+            else:
+                # Modo estricto pero sin chunks recuperables: bloqueo total de citas
+                system_prompt += (
+                    "\n\nINSTRUCCIÓN ABSOLUTA — MODO ESTRICTO: "
+                    + ("Los documentos de referencia no contienen fragmentos relevantes para este caso. "
+                       if has_indexed_docs else
+                       "No hay documentos de referencia cargados para esta plantilla. ")
+                    + "Queda PROHIBIDO citar, transcribir o mencionar el contenido de cualquier "
+                    "artículo, ley, decreto o sentencia. Puedes mencionar los nombres de las normas "
+                    "listadas en las reglas jurídicas, pero NUNCA su texto. Donde iría una cita "
+                    "textual escribe exactamente: [texto no disponible en fuentes autorizadas]."
+                )
+        else:
+            if rag_context:
+                system_prompt += (
+                    "\n\nDocumentos de referencia (prioriza estas fuentes, puedes complementar "
+                    "con tu conocimiento jurídico):\n\n"
+                    f"{rag_context}"
+                )
 
         # Remove internal keys from metadata
         clean_metadata = {k: v for k, v in request.metadata.items() if not k.startswith("_")}

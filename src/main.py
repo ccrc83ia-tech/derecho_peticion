@@ -17,9 +17,10 @@ from fastapi.staticfiles import StaticFiles
 
 from src.infrastructure.adapters.input.api.routes import DocumentController, router
 from src.infrastructure.container import Container
-from src.infrastructure.logging_config import get_logger, set_correlation_id
+from src.infrastructure.logging_config import configure, get_logger, set_correlation_id
 from src.infrastructure.security_config import create_secure_log_extra
 
+configure(_PROJECT_ROOT / "logs" / "api.log")
 logger = get_logger(__name__)
 
 logger.info("Starting application — project root: %s", _PROJECT_ROOT)

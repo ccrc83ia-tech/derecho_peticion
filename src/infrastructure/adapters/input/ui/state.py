@@ -142,12 +142,18 @@ def _get_kb():
     return _kb
 
 
-def ingest_document(template_id: str, doc_name: str, file_bytes: bytes, file_type: str) -> int:
+def ingest_document(
+    template_id: str,
+    doc_name: str,
+    file_bytes: bytes,
+    file_type: str,
+    on_progress=None,
+) -> int:
     from src.infrastructure.ingestion.ingest_service import ingest_file
     kb = _get_kb()
     if kb is None:
         return 0
-    chunks = ingest_file(kb, template_id, doc_name, file_bytes, file_type)
+    chunks = ingest_file(kb, template_id, doc_name, file_bytes, file_type, on_progress=on_progress)
     if chunks > 0:
         _get_repo().upsert_template_document(template_id, doc_name, file_type, chunks)
     return chunks

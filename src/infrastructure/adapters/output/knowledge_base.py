@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from pathlib import Path
 from threading import Lock
 
@@ -76,7 +77,8 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
         name = f"{_COLLECTION_PREFIX}{_safe_name(template_id)}"
         self._collection_cache.pop(name, None)
 
-    def ingest(self, template_id: str, doc_name: str, text: str) -> int:
+    def ingest(self, template_id: str, doc_name: str, text: str,
+               on_progress: Callable[[float, str], None] | None = None) -> int:
         chunks = _split_text(text, self._chunk_size, self._chunk_overlap)
         if not chunks:
             return 0
@@ -86,12 +88,19 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
             for i, c in enumerate(chunks)
         ]
         metadatas = [{"source": doc_name, "chunk_index": i} for i in range(len(chunks))]
-        for start in range(0, len(chunks), 100):
+        total_batches = max(1, (len(chunks) + 99) // 100)
+        for batch_idx, start in enumerate(range(0, len(chunks), 100)):
+            if on_progress:
+                # Embedding + indexado ocupa del 30% al 95%
+                pct = 0.3 + 0.65 * (batch_idx / total_batches)
+                on_progress(pct, f"Indexando fragmentos ({start + 1}–{min(start + 100, len(chunks))} de {len(chunks)})…")
             col.upsert(
                 ids=ids[start:start + 100],
                 documents=chunks[start:start + 100],
                 metadatas=metadatas[start:start + 100],
             )
+        if on_progress:
+            on_progress(1.0, "Completado")
         logger.info("Ingested %d chunks from '%s' into template '%s'", len(chunks), doc_name, template_id)
         return len(chunks)
 
@@ -106,6 +115,12 @@ class ChromaKnowledgeBase(KnowledgeBasePort):
             template_id, len(docs), len(_embed_cache),
         )
         return docs
+
+    def has_documents(self, template_id: str) -> bool:
+        try:
+            return self._collection(template_id).count() > 0
+        except Exception:
+            return False
 
     def delete_collection(self, template_id: str) -> None:
         name = f"{_COLLECTION_PREFIX}{_safe_name(template_id)}"

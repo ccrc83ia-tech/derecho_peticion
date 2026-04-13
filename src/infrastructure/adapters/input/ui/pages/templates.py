@@ -204,6 +204,29 @@ def render() -> None:
                 "La IA usará el texto literal de estos documentos al generar."
             )
 
+            rag_strict = st.toggle(
+                "🔒 Modo estricto — usar SOLO los documentos adjuntos como fuente",
+                value=tpl.get("rag_strict", True),
+                key=f"tpl_rag_strict_{tpl['template_id']}",
+                help=(
+                    "Activado: la IA solo puede citar los documentos adjuntos. "
+                    "Desactivado: puede complementar con su conocimiento propio."
+                ),
+            )
+            tpl["rag_strict"] = rag_strict
+            if rag_strict:
+                sac.alert(
+                    label="Modo estricto activo",
+                    description="La IA solo usará los documentos adjuntos. No citará leyes ni jurisprudencia de su conocimiento propio.",
+                    color="info", icon=True,
+                )
+            else:
+                sac.alert(
+                    label="Modo libre activo",
+                    description="La IA usará los documentos adjuntos como referencia principal, pero puede complementar con su conocimiento.",
+                    color="warning", icon=True,
+                )
+
             uploaded = st.file_uploader(
                 "Subir documento",
                 type=RAG_SUPPORTED_TYPES,
@@ -216,19 +239,34 @@ def render() -> None:
                     fkey = f"{tpl['template_id']}::{f.name}::{f.size}"
                     if fkey in processed:
                         continue
-                    with st.spinner(f"Procesando {f.name}…"):
+                    with st.status(f"Procesando **{f.name}**…", expanded=True) as status:
+                        bar = st.progress(0.0)
+                        label_slot = st.empty()
+
+                        def _on_progress(pct: float, lbl: str, _bar=bar, _slot=label_slot) -> None:
+                            _bar.progress(min(pct, 1.0))
+                            _slot.caption(lbl)
+
                         try:
-                            chunks = ingest_document(tpl["template_id"], f.name, f.getvalue(), f.type)
+                            chunks = ingest_document(
+                                tpl["template_id"], f.name, f.getvalue(), f.type,
+                                on_progress=_on_progress,
+                            )
                             if chunks > 0:
-                                sac.alert(
-                                    label=f"✅ {f.name}",
-                                    description=f"{chunks} fragmentos indexados",
-                                    color="success", icon=True, closable=True,
+                                status.update(
+                                    label=f"✅ {f.name} — {chunks} fragmentos indexados",
+                                    state="complete", expanded=False,
                                 )
                             else:
-                                sac.alert(label=f"⚠️ {f.name}", description="No se extrajo texto", color="warning", icon=True)
+                                status.update(
+                                    label=f"⚠️ {f.name} — No se extrajo texto",
+                                    state="error", expanded=False,
+                                )
                         except Exception as e:
-                            sac.alert(label=f"❌ {f.name}", description=str(e), color="error", icon=True)
+                            status.update(
+                                label=f"❌ {f.name} — {e}",
+                                state="error", expanded=False,
+                            )
                     processed.add(fkey)
                 st.session_state["_rag_processed"] = processed
 
@@ -272,6 +310,9 @@ def render() -> None:
             tpl["legal_rules"] = [
                 r["text"] for r in rules_state if r.get("text", "").strip()
             ]
+            tpl["rag_strict"] = st.session_state.get(
+                f"tpl_rag_strict_{tpl['template_id']}", tpl.get("rag_strict", True)
+            )
             upsert_template(tpl)
             sac.alert(label="Guardado", description="Plantilla guardada correctamente.", color="success", icon=True)
             st.session_state["_tpl_context"] = None

@@ -28,6 +28,7 @@ pypdf>=4.0.0
 # Frontend
 streamlit>=1.45.0
 streamlit-antd-components>=0.3.0
+streamlit-cookies-controller>=0.0.4
 requests>=2.31.0
 
 # Auth

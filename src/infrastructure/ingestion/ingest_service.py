@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 
 from src.domain.ports.out_ports import KnowledgeBasePort
 from src.infrastructure.logging_config import get_logger
@@ -43,7 +44,16 @@ def ingest_file(
     doc_name: str,
     file_bytes: bytes,
     file_type: str,
+    on_progress: "Callable[[float, str], None] | None" = None,
 ) -> int:
+    """Ingest a file into the knowledge base.
+
+    on_progress(pct, label) is called at key stages with a float 0.0-1.0.
+    """
+    def _progress(pct: float, label: str) -> None:
+        if on_progress:
+            on_progress(pct, label)
+
     size_bytes = len(file_bytes)
     if size_bytes > _MAX_FILE_BYTES:
         size_mb = size_bytes / (1024 * 1024)
@@ -53,6 +63,7 @@ def ingest_file(
         )
         raise FileTooLargeError(size_mb, _MAX_FILE_MB)
 
+    _progress(0.1, "Extrayendo texto…")
     text = extract_text(file_bytes, file_type)
     if not text.strip():
         logger.warning("Empty text extracted from '%s'", doc_name)
@@ -62,7 +73,8 @@ def ingest_file(
         "Extracted %d chars from '%s' (%.2f MB) for template '%s'",
         len(text), doc_name, size_bytes / (1024 * 1024), template_id,
     )
-    return kb.ingest(template_id, doc_name, text)
+    _progress(0.3, "Dividiendo en fragmentos…")
+    return kb.ingest(template_id, doc_name, text, on_progress=on_progress)
 
 
 def _extract_pdf(file_bytes: bytes) -> str:

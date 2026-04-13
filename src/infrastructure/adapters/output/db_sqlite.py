@@ -123,6 +123,8 @@ def init_db(db_path: str | Path) -> None:
         user_cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
         if "permissions" not in user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN permissions TEXT DEFAULT NULL")
+        if "rag_strict" not in cols:
+            conn.execute("ALTER TABLE templates ADD COLUMN rag_strict INTEGER NOT NULL DEFAULT 1")
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +138,7 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
         init_db(self._db_path)
         # TTL cache: invalidated on write, expires after 30s automatically
         self._template_cache: TTLCache = TTLCache(maxsize=1, ttl=_TEMPLATE_CACHE_TTL)
-        logger.info("SQLiteTenantRepository ready — %s", self._db_path)
+        logger.info("SQLiteTenantRepository ready — %s", str(self._db_path))
 
     def _conn(self) -> sqlite3.Connection:
         return _connect(self._db_path)
@@ -209,14 +211,15 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
         with self._conn() as conn:
             conn.execute(
                 """
-                INSERT INTO templates (template_id, name, description, fields, system_prompt, legal_rules)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO templates (template_id, name, description, fields, system_prompt, legal_rules, rag_strict)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(template_id) DO UPDATE SET
                     name=excluded.name,
                     description=excluded.description,
                     fields=excluded.fields,
                     system_prompt=excluded.system_prompt,
-                    legal_rules=excluded.legal_rules
+                    legal_rules=excluded.legal_rules,
+                    rag_strict=excluded.rag_strict
                 """,
                 (
                     template["template_id"],
@@ -225,6 +228,7 @@ class SQLiteTenantRepository(TenantRepositoryPort, TemplateRepositoryPort, Entit
                     json.dumps(template.get("fields", []), ensure_ascii=False),
                     template.get("system_prompt", ""),
                     json.dumps(template.get("legal_rules", []), ensure_ascii=False),
+                    1 if template.get("rag_strict", True) else 0,
                 ),
             )
             # Snapshot version — immutable audit trail
@@ -409,9 +413,11 @@ def _row_to_template(row: sqlite3.Row) -> dict[str, Any]:
     try:
         d["system_prompt"] = row["system_prompt"]
         d["legal_rules"] = json.loads(row["legal_rules"])
+        d["rag_strict"] = bool(row["rag_strict"]) if "rag_strict" in row.keys() else True
     except (IndexError, KeyError):
         d["system_prompt"] = ""
         d["legal_rules"] = []
+        d["rag_strict"] = True
     return d
 
 

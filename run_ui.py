@@ -11,6 +11,10 @@ _root = Path(__file__).resolve().parent
 if str(_root) not in sys.path:
     sys.path.insert(0, str(_root))
 
+# Configure logging BEFORE any other src import
+from src.infrastructure.logging_config import configure
+configure(_root / "logs" / "ui.log")
+
 import streamlit as st
 
 from src.infrastructure.adapters.input.ui.components import (
@@ -31,8 +35,8 @@ from src.infrastructure.adapters.input.ui.pages import (
 from src.infrastructure.adapters.input.ui.state import (
     current_user, ensure_admin_exists, is_api_online, load_tenants, logout,
 )
-from src.infrastructure.adapters.input.ui.session import restore_session, _get_manager
-from src.domain.models import ROLE_PERMISSIONS, Role, Permission
+from src.infrastructure.adapters.input.ui.session import restore_session
+from src.domain.models import Permission, User as UserModel
 
 
 def _get_brand_name() -> str:
@@ -48,9 +52,6 @@ brand_name = _get_brand_name()
 st.set_page_config(page_title=brand_name, page_icon=APP_ICON, layout="wide")
 inject_css()
 
-# Inicializar CookieManager UNA sola vez al inicio del ciclo de render
-_get_manager()
-
 # ---------------------------------------------------------------------------
 # Login gate — restore from cookie first, then check session_state
 # ---------------------------------------------------------------------------
@@ -61,11 +62,16 @@ if not user:
 
 # ---------------------------------------------------------------------------
 # Resolve permissions for current user
+# Los permisos custom (columna permissions en DB) tienen prioridad sobre el rol.
 # ---------------------------------------------------------------------------
 try:
-    role_enum = Role(user.get("role", "consulta"))
-    user_perms = {p.value for p in ROLE_PERMISSIONS.get(role_enum, set())}
-except ValueError:
+    _user_data = {k: v for k, v in user.items() if k in UserModel.model_fields}
+    _user_model = UserModel(**_user_data)
+    user_perms = {
+        p.value for p in Permission
+        if _user_model.has_permission(p)
+    }
+except Exception:
     user_perms = set()
 
 # ---------------------------------------------------------------------------
@@ -86,9 +92,18 @@ with st.sidebar:
     )
     if st.button("🚪 Cerrar sesión", use_container_width=True, key="logout_btn"):
         logout()
+        st.session_state.pop("nav_page", None)
         st.rerun()
 
     st.divider()
+
+    # Resetear nav_page si la página actual no está permitida para este usuario
+    current_nav = st.session_state.get("nav_page", "generate")
+    from src.infrastructure.adapters.input.ui.components import _NAV_ITEMS
+    allowed_keys = {item["key"] for item in _NAV_ITEMS if item.get("perm", "") in user_perms}
+    if current_nav not in allowed_keys:
+        st.session_state["nav_page"] = next(iter(allowed_keys), "generate")
+
     page_key = sidebar_nav(user_permissions=user_perms)
     st.divider()
     sidebar_status(is_api_online(), API_BASE)

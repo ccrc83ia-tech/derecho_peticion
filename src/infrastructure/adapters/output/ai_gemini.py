@@ -63,19 +63,19 @@ class GeminiAdapter(AIServicePort):
         return response.text
 
     async def _call_api(self, context: LegalContext):
-        # Implement resource limits to prevent unbounded consumption
-        max_tokens = min(context.max_output_tokens or 4000, 8000)  # Cap at 8K tokens
-        temperature = max(0.0, min(context.temperature or 0.1, 1.0))  # Clamp temperature
-        
+        temperature = max(0.0, min(context.temperature or 0.1, 1.0))
+        config_kwargs: dict = {
+            "system_instruction": context.system_prompt,
+            "temperature": temperature,
+            "http_options": HttpOptions(timeout=_TIMEOUT_MS),
+        }
+        if context.max_output_tokens:
+            config_kwargs["max_output_tokens"] = context.max_output_tokens
+
         return await self._client.aio.models.generate_content(
             model=self._model_name,
             contents=context.user_prompt,
-            config=GenerateContentConfig(
-                system_instruction=context.system_prompt,
-                temperature=temperature,
-                max_output_tokens=max_tokens,
-                http_options=HttpOptions(timeout=_TIMEOUT_MS),
-            ),
+            config=GenerateContentConfig(**config_kwargs),
         )
 
     @property

@@ -244,6 +244,9 @@ def render() -> None:
     if rag_docs:
         metadata["_rag_sources"] = ",".join(selected_rules)
 
+    # Pasar el modo estricto al backend
+    metadata["_rag_strict"] = "1" if template.get("rag_strict", True) else "0"
+
     missing = [
         _resolve_label(f)
         for f in fields

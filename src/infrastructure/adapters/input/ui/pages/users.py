@@ -145,6 +145,12 @@ def render() -> None:
         new_password = st.text_input("Nueva contraseña", type="password", key="_usr_new_pass")
         confirm_password = st.text_input("Confirmar contraseña", type="password", key="_usr_confirm_pass")
 
+        # Aplicar reset de permisos ANTES de renderizar los checkboxes
+        if st.session_state.pop(f"_usr_do_reset_perms_{sel_id}", False):
+            defaults = _default_perms_for_role(st.session_state.get(f"usr_role_{sel_id}", "pasante"))
+            for p in ALL_PERMS:
+                st.session_state[f"usr_perm_{p}_{sel_id}"] = p in defaults
+
         # Editable permission checkboxes
         section_title("Permisos del usuario")
         st.caption("Marque o desmarque para personalizar los permisos de este usuario.")
@@ -153,9 +159,7 @@ def render() -> None:
 
         # Botón para resetear permisos al default del rol
         if st.button("🔄 Restaurar permisos por defecto del rol", key=f"usr_reset_perms_{sel_id}"):
-            defaults = _default_perms_for_role(role)
-            for p in ALL_PERMS:
-                st.session_state[f"usr_perm_{p}_{sel_id}"] = p in defaults
+            st.session_state[f"_usr_do_reset_perms_{sel_id}"] = True
             st.rerun()
 
     # ── Actions ────────────────────────────────────────────────────────────
